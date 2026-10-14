@@ -1,17 +1,14 @@
-import { useEffect, useState } from "react"
-import { AppShell } from "@/layouts/Sidebar"
-import { PageHeader } from "@/layouts/PageHeader"
-import { Input, Label, SearchInput, Select } from "@/components/ui/Input"
-import { Button } from "@/components/ui/Button"
-import { RoleBadge } from "@/components/ui/Badge"
-import { PageError, PageLoading } from "@/components/ui/PageState"
-import { useDepartments, useProfiles } from "@/hooks/useData"
-import { useAuth } from "@/contexts/AuthContext"
-import { supabase } from "@/lib/supabase"
-import { formatDate, type Department, type Profile, type UserRole } from "@/lib/tickets"
+﻿import React, { useState } from 'react'
+import { AppShell } from '../../components/layout/AppShell'
+import { useTickets } from '../../context/TicketContext'
+import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
+import { SearchInput } from '../../components/ui/Input'
+import { Button } from '../../components/ui/Button'
+import type { UserRole } from '../../types'
 
-interface PendingChange {
-  id: string
+interface PendingRoleChange {
+  userId: string
   fullName: string
   oldRole: UserRole
   newRole: UserRole
@@ -20,270 +17,319 @@ interface PendingChange {
   isActive: boolean
 }
 
+type RoleFilter = 'all' | 'developer' | 'user' | 'admin'
+
 export function AdminUsers() {
-  const { profiles, loading, error, reload } = useProfiles()
-  const { departments } = useDepartments()
-  const { profile: adminProfile } = useAuth()
-  const [search, setSearch] = useState("")
-  const [message, setMessage] = useState("")
+  const { users, departments, updateUserAccess } = useTickets()
+  const { profile } = useAuth()
+  const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
+  const [drafts, setDrafts] = useState<
+    Record<string, { role: UserRole; departmentId: string | null; isActive: boolean }>
+  >({})
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
 
-  // Multi-Auth Verification Modal State
-  const [pending, setPending] = useState<PendingChange | null>(null)
-  const [adminPassword, setAdminPassword] = useState("")
-  const [reason, setReason] = useState("")
+  const [pending, setPending] = useState<PendingRoleChange | null>(null)
+  const [adminPassword, setAdminPassword] = useState('')
+  const [reason, setReason] = useState('')
   const [verifying, setVerifying] = useState(false)
-  const [verifyError, setVerifyError] = useState("")
 
-  function requestUpdate(change: PendingChange) {
-    setMessage("")
-    if (change.newRole === "developer" && !change.newDeptId) {
-      setMessage("Choose a department before granting the developer role.")
+  const getDraft = (u: (typeof users)[number]) =>
+    drafts[u.id] ?? { role: u.role, departmentId: u.departmentId, isActive: u.isActive }
+
+  const handleRequestSave = (u: (typeof users)[number]) => {
+    setError('')
+    setMessage('')
+    const d = getDraft(u)
+    if (d.role === 'developer' && !d.departmentId) {
+      setError('Please select a department before saving a Developer role.')
       return
     }
-    setAdminPassword("")
-    setReason("")
-    setVerifyError("")
-    setPending(change)
+    setPending({
+      userId: u.id,
+      fullName: u.fullName,
+      oldRole: u.role,
+      newRole: d.role,
+      oldDeptId: u.departmentId,
+      newDeptId: d.role === 'developer' ? d.departmentId : null,
+      isActive: d.isActive,
+    })
+    setAdminPassword('')
+    setReason('')
   }
 
-  async function confirmVerifiedUpdate(e: React.FormEvent) {
+  const handleConfirmVerification = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!pending || !adminProfile?.email) return
-
+    if (!pending || !profile) return
+    setError('')
     setVerifying(true)
-    setVerifyError("")
 
-    // Step 1: Multi-Auth Verification (Re-authenticate current Admin via password)
-    const { error: authErr } = await supabase.auth.signInWithPassword({
-      email: adminProfile.email,
-      password: adminPassword,
-    })
+    try {
+      const { error: authErr } = await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password: adminPassword,
+      })
+      if (authErr) {
+        throw new Error('Admin verification failed: Incorrect password.')
+      }
 
-    if (authErr) {
-      setVerifyError("Verification failed: Incorrect Admin password.")
+      await updateUserAccess({
+        userId: pending.userId,
+        role: pending.newRole,
+        departmentId: pending.newDeptId,
+        isActive: pending.isActive,
+        categoryIds: [],
+      })
+
+      await supabase.from('role_change_logs').insert({
+        target_user_id: pending.userId,
+        changed_by: profile.id,
+        old_role: pending.oldRole,
+        new_role: pending.newRole,
+        old_department_id: pending.oldDeptId,
+        new_department_id: pending.newDeptId,
+        reason: reason.trim() || 'Authorized administrative role update',
+        verified_method: 'password_reauth',
+      })
+
+      setMessage(`Verified and updated access for ${pending.fullName}.`)
+      setPending(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update user access.')
+    } finally {
       setVerifying(false)
-      return
     }
-
-    // Step 2: Execute atomic user access update
-    const { error: updateError } = await supabase.rpc("admin_update_user_access", {
-      target_user_id: pending.id,
-      target_role: pending.newRole,
-      target_department_id: pending.newRole === "developer" ? pending.newDeptId : null,
-      target_is_active: pending.isActive,
-      target_category_ids: [],
-    })
-
-    if (updateError) {
-      setVerifyError(updateError.message)
-      setVerifying(false)
-      return
-    }
-
-    // Step 3: Record verification audit log (ignores error if migration 0009 isn't applied yet)
-    await supabase.from("role_change_logs").insert({
-      target_user_id: pending.id,
-      changed_by: adminProfile.id,
-      old_role: pending.oldRole,
-      new_role: pending.newRole,
-      old_department_id: pending.oldDeptId,
-      new_department_id: pending.newRole === "developer" ? pending.newDeptId : null,
-      reason: reason.trim() || "Role/access update verified by administrator",
-      verified_method: "password_reauth",
-    })
-
-    setVerifying(false)
-    setPending(null)
-    await reload()
-    setMessage(`Verified and updated access for \${pending.fullName}.`)
   }
 
-  if (loading) return <AppShell role="admin"><PageLoading /></AppShell>
-  if (error) return <AppShell role="admin"><PageError message={error} /></AppShell>
-
-  const rows = profiles.filter((profile) =>
-    profile.full_name.toLowerCase().includes(search.toLowerCase())
-    || profile.email.toLowerCase().includes(search.toLowerCase()),
-  )
-
-  return (
-    <AppShell role="admin">
-      <div className="max-w-7xl px-8 py-8">
-        <PageHeader title="Users" subtitle="Manage help desk users and developer departments (with Admin verification)." />
-        <SearchInput
-          className="mb-5"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search users..."
-        />
-        {message && (
-          <p className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800">{message}</p>
-        )}
-        <div className="overflow-x-auto rounded-2xl border bg-white">
-          <table className="w-full min-w-[850px]">
-            <thead>
-              <tr>
-                {["User", "Role", "Department", "Status", "Joined", "Actions"].map((heading) => (
-                  <th key={heading} className="px-4 py-3 text-left text-xs uppercase text-[#aeaeb2]">{heading}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((profile) => (
-                <UserRow
-                  key={profile.id}
-                  profile={profile}
-                  departments={departments}
-                  onRequestSave={requestUpdate}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {pending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form onSubmit={confirmVerifiedUpdate} className="w-full max-w-md rounded-2xl border border-[#e5e5ea] bg-white p-6 shadow-xl space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-[#1d1d1f]">Admin Verification Required</h3>
-              <p className="mt-1 text-xs text-[#6e6e73]">
-                You are modifying role/department permissions for <strong>{pending.fullName}</strong> (
-                <span className="uppercase">{pending.oldRole}</span> → <span className="uppercase text-[#0071e3] font-semibold">{pending.newRole}</span>).
-                Please re-enter your Admin password to authorize this change.
-              </p>
-            </div>
-
-            {verifyError && (
-              <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{verifyError}</p>
-            )}
-
-            <div className="space-y-1.5">
-              <Label htmlFor="change-reason">Reason / Verification Note</Label>
-              <Input
-                id="change-reason"
-                placeholder="e.g., Assigned as Developer for Midterm release"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="admin-pass">Confirm Admin Password ({adminProfile?.email})</Label>
-              <Input
-                id="admin-pass"
-                type="password"
-                placeholder="Enter your password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setPending(null)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={verifying}>
-                {verifying ? "Verifying…" : "Verify & Save"}
-              </Button>
-            </div>
-          </form>
-        </div>
-      )}
-    </AppShell>
-  )
-}
-
-function UserRow({
-  profile,
-  departments,
-  onRequestSave,
-}: {
-  profile: Profile
-  departments: Department[]
-  onRequestSave: (change: PendingChange) => void
-}) {
-  const [role, setRole] = useState<UserRole>(profile.role)
-  const [departmentId, setDepartmentId] = useState(profile.department_id ?? "")
-  const [active, setActive] = useState(profile.is_active)
-  const isAdmin = profile.role === "admin"
-
-  useEffect(() => {
-    setRole(profile.role)
-    setDepartmentId(profile.department_id ?? "")
-    setActive(profile.is_active)
-  }, [profile.role, profile.department_id, profile.is_active])
-
-  function changeRole(next: UserRole) {
-    setRole(next)
-    if (next === "user") setDepartmentId("")
+  const counts = {
+    all: users.length,
+    developer: users.filter((u) => u.role === 'developer').length,
+    user: users.filter((u) => u.role === 'user').length,
+    admin: users.filter((u) => u.role === 'admin').length,
   }
 
+  const filtered = users.filter((u) => {
+    const matchesSearch =
+      u.fullName.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase())
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter
+    return matchesSearch && matchesRole
+  })
+
   return (
-    <tr className="border-t align-top">
-      <td className="px-4 py-3">
-        <p className="text-sm font-medium">{profile.full_name}</p>
-        <p className="text-xs text-[#6e6e73]">{profile.email}</p>
-      </td>
-      <td className="px-4 py-3">
-        <RoleBadge role={profile.role[0].toUpperCase() + profile.role.slice(1)} />
-        {!isAdmin && (
-          <Select className="mt-2" value={role} onChange={(event) => changeRole(event.target.value as UserRole)}>
-            <option value="user">User</option>
-            <option value="developer">Developer</option>
-          </Select>
-        )}
-      </td>
-      <td className="px-4 py-3">
-        <Select
-          disabled={isAdmin || role !== "developer"}
-          value={departmentId}
-          onChange={(event) => setDepartmentId(event.target.value)}
-        >
-          <option value="">No department</option>
-          {departments.map((department) => (
-            <option key={department.id} value={department.id}>{department.name}</option>
-          ))}
-        </Select>
-        {role === "developer" && departmentId && (
-          <p className="mt-1 max-w-64 text-[11px] text-[#6e6e73]">
-            This developer can be assigned to all ticket categories under this department.
+    <AppShell>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Users & Role Management</h1>
+          <p className="text-sm text-slate-500">
+            Manage portal accounts, filter by role, and assign developers to support departments.
           </p>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-1.5 rounded-xl bg-slate-100 p-1">
+            {(
+              [
+                { id: 'all', label: `All Users (${counts.all})` },
+                { id: 'developer', label: `Developers (${counts.developer})` },
+                { id: 'user', label: `Requestors (${counts.user})` },
+                { id: 'admin', label: `Admins (${counts.admin})` },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setRoleFilter(tab.id)}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
+                  roleFilter === tab.id
+                    ? 'bg-indigo-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <SearchInput
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search users by name or email..."
+            className="w-full lg:w-80"
+          />
+        </div>
+
+        {error && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+            {error}
+          </div>
         )}
-      </td>
-      <td className="px-4 py-3">
-        {isAdmin ? (
-          <span className="text-sm">Active</span>
-        ) : (
-          <Select value={active ? "active" : "inactive"} onChange={(event) => setActive(event.target.value === "active")}>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </Select>
+        {message && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            {message}
+          </div>
         )}
-      </td>
-      <td className="px-4 py-3 text-sm">{formatDate(profile.created_at)}</td>
-      <td className="px-4 py-3">
-        {!isAdmin && (
-          <Button
-            size="sm"
-            onClick={() =>
-              onRequestSave({
-                id: profile.id,
-                fullName: profile.full_name,
-                oldRole: profile.role,
-                newRole: role,
-                oldDeptId: profile.department_id,
-                newDeptId: role === "developer" ? departmentId || null : null,
-                isActive: active,
-              })
-            }
-          >
-            Save
-          </Button>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <th className="py-3.5 px-4">User</th>
+                  <th className="py-3.5 px-4">Role</th>
+                  <th className="py-3.5 px-4">Department</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Joined</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((u) => {
+                  const d = getDraft(u)
+                  const isAdmin = u.role === 'admin'
+                  return (
+                    <tr key={u.id} className="hover:bg-slate-50/70">
+                      <td className="py-3.5 px-4">
+                        <p className="font-semibold text-slate-900">{u.fullName}</p>
+                        <p className="text-xs text-slate-500">{u.email}</p>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {isAdmin ? (
+                          <span className="inline-flex rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700">
+                            Admin
+                          </span>
+                        ) : (
+                          <select
+                            value={d.role}
+                            onChange={(e) =>
+                              setDrafts((prev) => ({
+                                ...prev,
+                                [u.id]: { ...d, role: e.target.value as UserRole },
+                              }))
+                            }
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800"
+                          >
+                            <option value="user">Requestor</option>
+                            <option value="developer">Developer</option>
+                          </select>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {d.role === 'developer' ? (
+                          <select
+                            value={d.departmentId || ''}
+                            onChange={(e) =>
+                              setDrafts((prev) => ({
+                                ...prev,
+                                [u.id]: { ...d, departmentId: e.target.value || null },
+                              }))
+                            }
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800"
+                          >
+                            <option value="">Select department...</option>
+                            {departments.map((dept) => (
+                              <option key={dept.id} value={dept.id}>
+                                {dept.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {isAdmin ? (
+                          <span className="text-xs font-semibold text-emerald-700">Active</span>
+                        ) : (
+                          <select
+                            value={d.isActive ? 'active' : 'inactive'}
+                            onChange={(e) =>
+                              setDrafts((prev) => ({
+                                ...prev,
+                                [u.id]: { ...d, isActive: e.target.value === 'active' },
+                              }))
+                            }
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800"
+                          >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                          </select>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-500 whitespace-nowrap">
+                        {new Date(u.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        {!isAdmin && (
+                          <Button onClick={() => handleRequestSave(u)} className="px-3.5 py-1.5 text-xs">
+                            Save
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {pending && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+            <form
+              onSubmit={handleConfirmVerification}
+              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4"
+            >
+              <h2 className="text-lg font-bold text-slate-900">Admin Verification Required</h2>
+              <p className="text-xs text-slate-600">
+                You are updating access permissions for <strong>{pending.fullName}</strong> (
+                {pending.oldRole === 'user' ? 'REQUESTOR' : pending.oldRole.toUpperCase()} →{' '}
+                <span className="text-indigo-600 font-bold">
+                  {pending.newRole === 'user' ? 'REQUESTOR' : pending.newRole.toUpperCase()}
+                </span>
+                ). Please enter your administrator password to authorize this change.
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                  Authorization Note
+                </label>
+                <input
+                  type="text"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="e.g., Department assignment or role authorization"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                  Confirm Admin Password ({profile?.email})
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button onClick={() => setPending(null)} type="button" variant="secondary">
+                  Cancel
+                </Button>
+                <Button disabled={verifying} type="submit">
+                  {verifying ? 'Verifying...' : 'Verify & Save'}
+                </Button>
+              </div>
+            </form>
+          </div>
         )}
-      </td>
-    </tr>
+      </div>
+    </AppShell>
   )
 }
