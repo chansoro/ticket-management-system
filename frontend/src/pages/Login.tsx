@@ -1,6 +1,5 @@
 ﻿import React, { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { ShieldCheck } from 'lucide-react'
 import { useAuth, getHomePath } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { Button } from '../components/ui/Button'
@@ -59,8 +58,8 @@ export function Login() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 px-4 py-10">
       <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-8 shadow-2xl">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
-            <ShieldCheck className="h-6 w-6" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white font-black text-lg shadow-md shadow-indigo-600/30">
+            R
           </div>
           <div>
             <h1 className="text-xl font-extrabold tracking-tight text-slate-900">Resolvr</h1>

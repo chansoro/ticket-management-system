@@ -1,6 +1,5 @@
 ﻿import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, Mail, Users, FolderKanban, Ticket } from 'lucide-react'
 import { AppShell } from '../../components/layout/AppShell'
 import { useTickets } from '../../context/TicketContext'
 import { Button } from '../../components/ui/Button'
@@ -87,15 +86,12 @@ export function AdminDevelopers() {
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                        <Building2 className="h-5 w-5" />
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 font-bold text-sm">
+                        {dept.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div>
                         <h2 className="text-base font-bold text-slate-900">{dept.name}</h2>
-                        <p className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <Mail className="h-3.5 w-3.5" />
-                          <span>{dept.email}</span>
-                        </p>
+                        <p className="text-xs text-slate-500">{dept.email}</p>
                       </div>
                     </div>
 
@@ -111,9 +107,8 @@ export function AdminDevelopers() {
                   </div>
 
                   <div>
-                    <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
-                      <FolderKanban className="h-3.5 w-3.5 text-indigo-500" />
-                      <span>Linked Ticket Categories ({deptCategories.length})</span>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Linked Ticket Categories ({deptCategories.length})
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {deptCategories.map((c) => (
@@ -128,9 +123,8 @@ export function AdminDevelopers() {
                   </div>
 
                   <div>
-                    <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
-                      <Users className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>Assigned Specialists ({deptDevs.length})</span>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Assigned Specialists ({deptDevs.length})
                     </p>
                     <div className="divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/60">
                       {deptDevs.map((dev) => {
@@ -167,7 +161,6 @@ export function AdminDevelopers() {
 
                 <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
                   <div className="flex items-center gap-2 font-semibold text-slate-700">
-                    <Ticket className="h-4 w-4 text-indigo-600" />
                     <span>{deptOpenTickets.length} active department tickets</span>
                     {unassignedCount > 0 && (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">

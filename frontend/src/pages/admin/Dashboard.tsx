@@ -1,6 +1,5 @@
 ﻿import React from 'react'
 import { Link } from 'react-router-dom'
-import { AlertCircle, Clock, UserX, CheckCircle2, ArrowUpRight, Layers } from 'lucide-react'
 import { AppShell } from '../../components/layout/AppShell'
 import { useTickets } from '../../context/TicketContext'
 import { PriorityBadge } from '../../components/ui/PriorityBadge'
@@ -23,28 +22,28 @@ export function AdminDashboard() {
       label: 'Open Queue',
       value: openCount,
       sub: 'Awaiting triage',
-      icon: AlertCircle,
+      badge: '●',
       color: 'bg-blue-50 text-blue-600 ring-blue-500/20',
     },
     {
       label: 'In Progress',
       value: assignedCount,
       sub: 'Actively worked on',
-      icon: Clock,
+      badge: '◔',
       color: 'bg-amber-50 text-amber-600 ring-amber-500/20',
     },
     {
       label: 'Unassigned',
       value: unassignedCount,
       sub: 'Needs developer assignment',
-      icon: UserX,
+      badge: '!',
       color: 'bg-rose-50 text-rose-600 ring-rose-500/20',
     },
     {
       label: 'Resolved',
       value: resolvedCount,
       sub: 'Completed with notes',
-      icon: CheckCircle2,
+      badge: '✓',
       color: 'bg-emerald-50 text-emerald-600 ring-emerald-500/20',
     },
   ]
@@ -63,30 +62,26 @@ export function AdminDashboard() {
             className="inline-flex items-center gap-1.5 self-start rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-indigo-500"
             to="/admin/tickets"
           >
-            <span>Manage All Tickets</span>
-            <ArrowUpRight className="h-4 w-4" />
+            <span>Manage All Tickets →</span>
           </Link>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((item) => {
-            const Icon = item.icon
-            return (
-              <div
-                key={item.label}
-                className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs"
-              >
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{item.label}</p>
-                  <p className="mt-1.5 text-3xl font-extrabold text-slate-900">{item.value}</p>
-                  <p className="mt-1 text-xs text-slate-500">{item.sub}</p>
-                </div>
-                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ${item.color}`}>
-                  <Icon className="h-6 w-6" />
-                </div>
+          {stats.map((item) => (
+            <div
+              key={item.label}
+              className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs"
+            >
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{item.label}</p>
+                <p className="mt-1.5 text-3xl font-extrabold text-slate-900">{item.value}</p>
+                <p className="mt-1 text-xs text-slate-500">{item.sub}</p>
               </div>
-            )
-          })}
+              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold ring-1 ${item.color}`}>
+                {item.badge}
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -168,12 +163,9 @@ export function AdminDashboard() {
 
           <div className="space-y-6">
             <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Department Active Queues</h2>
-                  <p className="text-xs text-slate-500">Open & in-progress tickets routed by category.</p>
-                </div>
-                <Layers className="h-5 w-5 text-indigo-600" />
+              <div className="mb-4">
+                <h2 className="text-base font-bold text-slate-900">Department Active Queues</h2>
+                <p className="text-xs text-slate-500">Open & in-progress tickets routed by category.</p>
               </div>
               <div className="space-y-3">
                 {departments.map((dept) => {

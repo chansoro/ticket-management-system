@@ -1,16 +1,16 @@
 ﻿import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, CheckCheck, ExternalLink } from 'lucide-react'
 import { AppShell } from '../components/layout/AppShell'
-import { useNotifications } from '../context/NotificationContext'
+import { useTickets } from '../context/TicketContext'
 import { useAuth } from '../context/AuthContext'
 import { Button } from '../components/ui/Button'
 
 export function NotificationsPage() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
+  const { notifications, markNotificationRead, markAllNotificationsRead } = useTickets()
   const { profile } = useAuth()
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
 
+  const unreadCount = notifications.filter((n) => !n.readAt).length
   const displayed =
     filter === 'unread' ? notifications.filter((n) => !n.readAt) : notifications
 
@@ -55,12 +55,11 @@ export function NotificationsPage() {
 
             {unreadCount > 0 && (
               <Button
-                onClick={() => void markAllAsRead()}
+                onClick={() => void markAllNotificationsRead()}
                 variant="secondary"
                 className="inline-flex items-center gap-1.5 text-xs"
               >
-                <CheckCheck className="h-4 w-4 text-indigo-600" />
-                <span>Mark all read</span>
+                <span>✓ Mark all read</span>
               </Button>
             )}
           </div>
@@ -73,7 +72,7 @@ export function NotificationsPage() {
               <div
                 key={n.id}
                 onClick={() => {
-                  if (isUnread) void markAsRead(n.id)
+                  if (isUnread) void markNotificationRead(n.id)
                 }}
                 className={`flex flex-col justify-between gap-4 rounded-2xl border p-5 transition sm:flex-row sm:items-center ${
                   isUnread
@@ -83,11 +82,11 @@ export function NotificationsPage() {
               >
                 <div className="flex items-start gap-3.5">
                   <div
-                    className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-bold ${
                       isUnread ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'
                     }`}
                   >
-                    <Bell className="h-5 w-5" />
+                    🔔
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -110,8 +109,7 @@ export function NotificationsPage() {
                     className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-indigo-600 shadow-2xs hover:bg-indigo-50"
                     to={getTicketPath(n.ticketId)}
                   >
-                    <span>Open Ticket</span>
-                    <ExternalLink className="h-3.5 w-3.5" />
+                    <span>Open Ticket →</span>
                   </Link>
                 </div>
               </div>
@@ -120,8 +118,7 @@ export function NotificationsPage() {
 
           {!displayed.length && (
             <div className="rounded-2xl border border-slate-200/80 bg-white py-14 text-center">
-              <Bell className="mx-auto h-8 w-8 text-slate-300" />
-              <p className="mt-2 text-sm font-medium text-slate-500">No notifications to display.</p>
+              <p className="text-sm font-medium text-slate-500">No notifications to display.</p>
             </div>
           )}
         </div>

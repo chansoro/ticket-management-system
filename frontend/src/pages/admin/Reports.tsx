@@ -1,6 +1,5 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileSpreadsheet, FileText, Calendar } from 'lucide-react'
 import { AppShell } from '../../components/layout/AppShell'
 import { supabase } from '../../lib/supabase'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -227,7 +226,7 @@ export function AdminReports() {
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5">
-              <Calendar className="h-4 w-4 text-indigo-600" />
+              <span className="text-xs font-bold text-indigo-600">Period:</span>
               <select
                 value={scope}
                 onChange={(e) => setScope(e.target.value as ReportScope)}
@@ -253,13 +252,11 @@ export function AdminReports() {
             </div>
 
             <Button className="inline-flex items-center gap-2" onClick={handleDownloadCSV} variant="secondary">
-              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-              <span>Export .CSV</span>
+              <span>⬇ Export .CSV</span>
             </Button>
 
             <Button className="inline-flex items-center gap-2" onClick={handleExportPDF}>
-              <FileText className="h-4 w-4" />
-              <span>Export .PDF (Developer Summary)</span>
+              <span>⎙ Export .PDF (Developer Summary)</span>
             </Button>
           </div>
         </div>
