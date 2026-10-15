@@ -5,25 +5,21 @@ import { BackLink } from "@/layouts/PageHeader"
 import { Button } from "@/components/ui/Button"
 import { CategoryBadge, PriorityBadge, StatusBadge } from "@/components/ui/Badge"
 import { PageError, PageLoading } from "@/components/ui/PageState"
-import { Input, Select } from "@/components/ui/Input"
+import { Select } from "@/components/ui/Input"
 import { supabase } from "@/lib/supabase"
-import { useAuth } from "@/contexts/AuthContext"
 import { formatDateTime, mapTicket, ticketSelect, type Profile, type Ticket, type TicketActivity } from "@/lib/tickets"
-import { Check, ArrowRight, Star } from "lucide-react"
+import { Check, ArrowRight, Star, Lock } from "lucide-react"
 
 export function AdminTicketDetail() {
   const { id } = useParams()
-  const { profile: adminProfile } = useAuth()
   const [ticket, setTicket] = useState<Ticket | null>(null)
   const [developers, setDevelopers] = useState<Profile[]>([])
+  const [activeCounts, setActiveCounts] = useState<Record<string, number>>({})
   const [activity, setActivity] = useState<TicketActivity[]>([])
   const [selected, setSelected] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
-  const [showReassignVerify, setShowReassignVerify] = useState(false)
-  const [adminPassword, setAdminPassword] = useState("")
-  const [verifyError, setVerifyError] = useState("")
 
   async function load() {
     setError("")
@@ -32,11 +28,24 @@ export function AdminTicketDetail() {
     const nextTicket = mapTicket(data as never)
     setTicket(nextTicket)
     setSelected(nextTicket.assigned_to ?? "")
+
     const { data: category } = await supabase.from("categories").select("department_id").eq("id", nextTicket.category_id).single()
     if (category) {
       const { data: profiles } = await supabase.from("profiles").select("*").eq("role", "developer").eq("is_active", true).eq("department_id", category.department_id).order("full_name")
-      setDevelopers((profiles ?? []) as Profile[])
+      const devList = (profiles ?? []) as Profile[]
+      setDevelopers(devList)
+
+      const { data: activeTickets } = await supabase.from("tickets").select("assigned_to, status").neq("status", "resolved")
+      const counts: Record<string, number> = {}
+      devList.forEach((d) => { counts[d.id] = 0 })
+      ;(activeTickets ?? []).forEach((t: any) => {
+        if (t.assigned_to && counts[t.assigned_to] !== undefined) {
+          counts[t.assigned_to] += 1
+        }
+      })
+      setActiveCounts(counts)
     }
+
     const { data: events } = await supabase.from("ticket_activity").select("*").eq("ticket_id", id).order("created_at")
     setActivity((events ?? []) as TicketActivity[])
     setLoading(false)
@@ -45,37 +54,20 @@ export function AdminTicketDetail() {
   useEffect(() => { void load() }, [id])
 
   async function executeAssign() {
-    if (!ticket) return
+    if (!ticket || !selected) return
     setSaving(true); setError("")
-    const payload: { assigned_to: string | null; status?: "open" | "in_progress" } = { assigned_to: selected || null }
-    if (selected && ticket.statusDb === "open") payload.status = "in_progress"
-    if (!selected && ticket.statusDb === "in_progress") payload.status = "open"
+    const payload: { assigned_to: string | null; status?: "open" | "in_progress" } = { assigned_to: selected }
+    if (ticket.statusDb === "open") payload.status = "in_progress"
     const { error: updateError } = await supabase.from("tickets").update(payload).eq("id", id)
     if (updateError) setError(updateError.message)
     else { await load(); window.dispatchEvent(new Event("notifications-updated")) }
     setSaving(false)
   }
 
-  const handleSaveAssignmentClick = () => {
-    if (!ticket) return
-    if (ticket.assigned_to && ticket.assigned_to !== selected) {
-      setAdminPassword(""); setVerifyError(""); setShowReassignVerify(true); return
-    }
-    void executeAssign()
-  }
-
-  const confirmVerifiedReassign = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!adminProfile?.email) return
-    setSaving(true); setVerifyError("")
-    const { error: authErr } = await supabase.auth.signInWithPassword({ email: adminProfile.email, password: adminPassword })
-    if (authErr) { setVerifyError("Verification failed: Incorrect Admin password."); setSaving(false); return }
-    setShowReassignVerify(false)
-    await executeAssign()
-  }
-
   if (loading) return <AppShell role="admin"><PageLoading /></AppShell>
   if (error || !ticket) return <AppShell role="admin"><PageError message={error || "Not found"} /></AppShell>
+
+  const isLocked = Boolean(ticket.assigned_to) || ticket.statusDb === "resolved"
 
   const timeline = activity.length > 0
     ? activity.map((act) => {
@@ -148,11 +140,34 @@ export function AdminTicketDetail() {
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs space-y-3.5">
               <h2 className="text-base font-bold text-slate-900">Developer Assignment</h2>
               <p className="text-xs text-slate-500">Routed to specialists in this ticket&apos;s department queue.</p>
-              <Select value={selected} onChange={(e) => setSelected(e.target.value)}>
-                <option value="">Unassigned</option>
-                {developers.map((dev) => <option key={dev.id} value={dev.id}>{dev.full_name}</option>)}
+              <Select
+                value={selected}
+                onChange={(e) => setSelected(e.target.value)}
+                disabled={isLocked}
+                className={isLocked ? "bg-slate-100 text-slate-500 cursor-not-allowed" : ""}
+              >
+                <option value="">Select a developer...</option>
+                {developers.map((dev) => {
+                  const count = activeCounts[dev.id] ?? 0
+                  const loadText = count === 0 ? "0 active (Available)" : count === 1 ? "1 active ticket" : count + " active tickets"
+                  return (
+                    <option key={dev.id} value={dev.id}>
+                      {dev.full_name} — ({loadText})
+                    </option>
+                  )
+                })}
               </Select>
-              <Button className="w-full" disabled={saving} onClick={handleSaveAssignmentClick}>Save Assignment</Button>
+
+              {isLocked ? (
+                <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-xs font-semibold text-slate-500">
+                  <Lock className="h-3.5 w-3.5 text-slate-400" />
+                  <span>{ticket.statusDb === "resolved" ? "Ticket Resolved — Assignment Locked" : "Developer Assigned — Assignment Locked"}</span>
+                </div>
+              ) : (
+                <Button className="w-full" disabled={saving || !selected} onClick={() => void executeAssign()}>
+                  {saving ? "Assigning..." : "Save Assignment"}
+                </Button>
+              )}
             </div>
 
             {ticket.resolution_comment && (
@@ -167,21 +182,6 @@ export function AdminTicketDetail() {
           </div>
         </div>
       </div>
-
-      {showReassignVerify && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-          <form onSubmit={confirmVerifiedReassign} className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-900">Reassign Developer Authorization</h3>
-            <p className="text-xs text-slate-600">Confirm your admin password to reassign <strong>#{ticket.ticket_number}</strong>:</p>
-            {verifyError && <p className="text-xs text-rose-600">{verifyError}</p>}
-            <Input type="password" placeholder="Admin password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} required />
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setShowReassignVerify(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving}>Verify & Save</Button>
-            </div>
-          </form>
-        </div>
-      )}
     </AppShell>
   )
 }

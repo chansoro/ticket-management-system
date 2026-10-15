@@ -120,12 +120,12 @@ export function AdminReports() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b-2 border-slate-300 bg-slate-50 font-bold uppercase text-slate-700">
-                  <th className="py-3 px-3">Specialist Developer</th>
-                  <th className="py-3 px-3">Department Queue</th>
-                  <th className="py-3 px-3 text-center">Resolved</th>
-                  <th className="py-3 px-3 text-center">Pending</th>
-                  <th className="py-3 px-3 text-center">Total Assigned</th>
-                  <th className="py-3 px-3 text-right">Resolution Rate</th>
+                  <th className="py-3 px-2.5 whitespace-nowrap">Specialist Developer</th>
+                  <th className="py-3 px-2.5 whitespace-nowrap">Department Queue</th>
+                  <th className="py-3 px-2.5 text-center whitespace-nowrap">Resolved</th>
+                  <th className="py-3 px-2.5 text-center whitespace-nowrap">Pending</th>
+                  <th className="py-3 px-2.5 text-center whitespace-nowrap">Total Assigned</th>
+                  <th className="py-3 px-2.5 text-right whitespace-nowrap">Resolution Rate</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
