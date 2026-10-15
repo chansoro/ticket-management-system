@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { AppShell } from "@/layouts/Sidebar"
 import { PageHeader } from "@/layouts/PageHeader"
@@ -24,17 +24,11 @@ export function AdminTickets() {
 
   const filtered = tickets.filter((t) => {
     const term = search.toLowerCase()
-    const matchesSearch =
-      t.ticket_number.toLowerCase().includes(term) ||
-      t.subject.toLowerCase().includes(term) ||
-      t.requestor.toLowerCase().includes(term) ||
-      (t.assignedTo ?? "").toLowerCase().includes(term)
-
+    const matchesSearch = t.ticket_number.toLowerCase().includes(term) || t.subject.toLowerCase().includes(term) || t.requestor.toLowerCase().includes(term) || (t.assignedTo ?? "").toLowerCase().includes(term)
     const matchesStatus = statusFilter === "all" || t.statusDb === statusFilter
     const tDeptId = catDeptMap[t.category_id]
     const matchesDept = deptFilter === "all" || tDeptId === deptFilter
     const matchesCat = catFilter === "all" || t.category_id === catFilter
-
     return matchesSearch && matchesStatus && matchesDept && matchesCat
   })
 
@@ -44,125 +38,73 @@ export function AdminTickets() {
         <PageHeader
           title="Support Tickets"
           subtitle="Tickets are auto-routed to their department queue based on the chosen category."
-          action={
-            <span className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs">
-              Showing {filtered.length} of {tickets.length} tickets
-            </span>
-          }
+          action={<span className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700">Showing {filtered.length} of {tickets.length} tickets</span>}
         />
-
         <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs lg:flex-row lg:items-center">
-          <SearchInput
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tickets, subject, requestor, or assignee..."
-            className="flex-1"
-          />
-
+          <div className="flex-1 w-full">
+            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tickets, subject, requestor, or assignee..." className="w-full" />
+          </div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
-            >
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
               <option value="all">All Statuses</option>
               <option value="open">Open</option>
               <option value="in_progress">Assigned</option>
               <option value="resolved">Resolved</option>
             </select>
-
-            <select
-              value={deptFilter}
-              onChange={(e) => {
-                setDeptFilter(e.target.value)
-                setCatFilter("all")
-              }}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
-            >
+            <select value={deptFilter} onChange={(e) => { setDeptFilter(e.target.value); setCatFilter("all") }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
               <option value="all">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
+              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
-
-            <select
-              value={catFilter}
-              onChange={(e) => setCatFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
-            >
+            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
               <option value="all">All Categories</option>
-              {categories
-                .filter((c) => deptFilter === "all" || c.department_id === deptFilter)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+              {categories.filter((c) => deptFilter === "all" || c.department_id === deptFilter).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
         </div>
-
         <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
-          <table className="w-full text-left text-sm table-fixed">
+          <table className="w-full table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                <th className="py-3.5 px-4 w-28">Ticket</th>
-                <th className="py-3.5 px-4 w-1/4">Subject</th>
-                <th className="py-3.5 px-4 w-40">Requestor</th>
-                <th className="py-3.5 px-4 w-52">Department & Category</th>
-                <th className="py-3.5 px-4 w-28">Priority</th>
-                <th className="py-3.5 px-4 w-28">Status</th>
-                <th className="py-3.5 px-4 w-44">Assigned Developer</th>
+                <th className="py-3.5 px-3 w-28">Ticket</th>
+                <th className="py-3.5 px-3">Subject</th>
+                <th className="py-3.5 px-3 w-40">Requestor</th>
+                <th className="py-3.5 px-3 w-52">Department & Category</th>
+                <th className="py-3.5 px-3 w-24">Priority</th>
+                <th className="py-3.5 px-3 w-24">Status</th>
+                <th className="py-3.5 px-3 w-44">Assigned Developer</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.map((t) => {
                 const deptId = catDeptMap[t.category_id]
                 const deptName = deptId ? deptMap[deptId] : "Unmapped"
+                const url = "/admin/tickets/" + t.id
                 return (
                   <tr key={t.id} className="hover:bg-slate-50/90 transition">
-                    <td className="py-3.5 px-4 font-mono text-xs font-bold text-indigo-600 whitespace-nowrap">
-                      <Link to={`/admin/tickets/\${t.id}`} className="hover:underline">
-                        #{t.ticket_number}
-                      </Link>
+                    <td className="py-3.5 px-3 font-mono text-xs font-bold text-indigo-600 whitespace-nowrap">
+                      <Link to={url} className="hover:underline">#{t.ticket_number}</Link>
                     </td>
-                    <td className="py-3.5 px-4 truncate">
-                      <Link to={`/admin/tickets/\${t.id}`} className="font-semibold text-slate-900 hover:text-indigo-600 block truncate">
-                        {t.subject}
-                      </Link>
-                      {t.resolution_comment && (
-                        <p className="mt-0.5 truncate text-xs text-emerald-700">✓ {t.resolution_comment}</p>
-                      )}
+                    <td className="py-3.5 px-3 truncate">
+                      <Link to={url} className="font-semibold text-slate-900 hover:text-indigo-600 block truncate">{t.subject}</Link>
+                      {t.resolution_comment && <p className="mt-0.5 truncate text-xs text-emerald-700">✓ {t.resolution_comment}</p>}
                     </td>
-                    <td className="py-3.5 px-4 font-medium text-slate-700 truncate">{t.requestor}</td>
-                    <td className="py-3.5 px-4 truncate">
-                      <span className="inline-flex rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
-                        {deptName}
-                      </span>
+                    <td className="py-3.5 px-3 font-medium text-slate-700 truncate">{t.requestor}</td>
+                    <td className="py-3.5 px-3 truncate">
+                      <span className="inline-flex rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">{deptName}</span>
                       <p className="mt-0.5 text-xs text-slate-500 truncate">{t.category}</p>
                     </td>
-                    <td className="py-3.5 px-4"><PriorityBadge priority={t.priority} /></td>
-                    <td className="py-3.5 px-4"><StatusBadge status={t.status} /></td>
-                    <td className="py-3.5 px-4 truncate">
+                    <td className="py-3.5 px-3"><PriorityBadge priority={t.priority} /></td>
+                    <td className="py-3.5 px-3"><StatusBadge status={t.status} /></td>
+                    <td className="py-3.5 px-3 truncate">
                       {t.assignedTo ? (
                         <span className="text-xs font-semibold text-slate-800">{t.assignedTo}</span>
                       ) : (
-                        <Link
-                          to={`/admin/tickets/\${t.id}`}
-                          className="inline-flex items-center rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-500/20 hover:bg-amber-100"
-                        >
-                          Assign Developer →
-                        </Link>
+                        <Link to={url} className="inline-flex items-center rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100">Assign Developer →</Link>
                       )}
                     </td>
                   </tr>
                 )
               })}
-              {!filtered.length && (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    No tickets match the selected filters.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>

@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react"
+import React, { useState } from "react"
 import { Link } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
 import { ShieldCheck, Eye, EyeOff, Sun, Moon } from "lucide-react"
@@ -14,220 +14,70 @@ export function Signup() {
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
-  const [showGoogleModal, setShowGoogleModal] = useState(false)
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
-    setMessage("")
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match. Please verify both fields.")
-      return
-    }
-
+    setError(""); setMessage("")
+    if (password !== confirmPassword) { setError("Passwords do not match."); return }
     setLoading(true)
     const { error: signUpErr } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: {
-        data: { full_name: fullName.trim() },
-        emailRedirectTo: `\${window.location.origin}/login`,
-      },
+      options: { data: { full_name: fullName.trim() }, emailRedirectTo: window.location.origin + "/login" },
     })
-
-    if (signUpErr) {
-      setError(signUpErr.message)
-    } else {
-      setMessage("Registration successful! Check your email to confirm your account.")
-    }
+    if (signUpErr) setError(signUpErr.message)
+    else setMessage("Account created! You can now sign in.")
     setLoading(false)
   }
 
   return (
-    <div className={`flex min-h-screen items-center justify-center px-4 py-12 relative transition-colors duration-200 \${
-      isDark ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-900"
-    }`}>
-      <button
-        type="button"
-        onClick={() => setIsDark(!isDark)}
-        className={`absolute top-6 right-6 p-2.5 rounded-full border transition \${
-          isDark ? "border-slate-800 bg-slate-900 text-amber-400 hover:bg-slate-800" : "border-slate-200 bg-white text-slate-700 shadow-xs hover:bg-slate-50"
-        }`}
-        aria-label="Toggle theme"
-      >
+    <div style={{ backgroundColor: isDark ? "#020617" : "#f1f5f9", color: isDark ? "#ffffff" : "#0f172a" }} className="flex min-h-screen items-center justify-center px-4 py-12 relative transition-colors">
+      <button type="button" onClick={() => setIsDark(!isDark)} style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#cbd5e1", color: isDark ? "#fbbf24" : "#334155" }} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm">
         {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
       </button>
-
-      <div className={`relative z-10 w-full max-w-md rounded-3xl border p-8 sm:p-10 shadow-2xl transition-all \${
-        isDark ? "border-slate-800 bg-[#0f172a]" : "border-slate-200 bg-white"
-      }`}>
+      <div style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#e2e8f0" }} className="w-full max-w-md rounded-3xl border p-8 sm:p-10 shadow-2xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
-            <ShieldCheck className="h-6 w-6" />
-          </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg"><ShieldCheck className="h-6 w-6" /></div>
           <div>
-            <h1 className={`text-xl font-black tracking-tight leading-none \${isDark ? "text-white" : "text-slate-900"}`}>Resolvr</h1>
-            <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-indigo-500">
-              Ticket Management System
-            </p>
+            <h1 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-xl font-black tracking-tight leading-none">Resolvr</h1>
+            <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-indigo-500">Ticket Management System</p>
           </div>
         </div>
-
-        <h2 className={`text-2xl font-bold tracking-tight \${isDark ? "text-white" : "text-slate-900"}`}>Create an account</h2>
-        <p className={`mt-1 text-sm \${isDark ? "text-slate-400" : "text-slate-500"}`}>
-          Submit and track IT service requests with departmental triage.
-        </p>
-
-        {error && (
-          <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-medium text-rose-500">
-            {error}
-          </div>
-        )}
-        {message && (
-          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs font-medium text-emerald-500">
-            {message}
-          </div>
-        )}
-
+        <h2 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-2xl font-bold tracking-tight">Create an account</h2>
+        <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-1 text-sm">Submit and track IT service requests with departmental triage.</p>
+        {error && <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-medium text-rose-500">{error}</div>}
+        {message && <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs font-medium text-emerald-500">{message}</div>}
         <form onSubmit={handleSignup} className="mt-6 space-y-4">
           <div>
-            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 \${isDark ? "text-slate-300" : "text-slate-600"}`}>
-              Full Name
-            </label>
-            <input
-              type="text"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className={`w-full rounded-xl border px-4 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-indigo-500/20 \${
-                isDark ? "border-slate-700 bg-slate-900/80 text-white focus:border-indigo-500" : "border-slate-300 bg-white text-slate-900 focus:border-indigo-600"
-              }`}
-            />
+            <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Full Name</label>
+            <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
-
           <div>
-            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 \${isDark ? "text-slate-300" : "text-slate-600"}`}>
-              Email Address
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`w-full rounded-xl border px-4 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-indigo-500/20 \${
-                isDark ? "border-slate-700 bg-slate-900/80 text-white focus:border-indigo-500" : "border-slate-300 bg-white text-slate-900 focus:border-indigo-600"
-              }`}
-            />
+            <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Email Address</label>
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
-
           <div>
-            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 \${isDark ? "text-slate-300" : "text-slate-600"}`}>
-              Password
-            </label>
+            <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Password</label>
             <div className="relative">
-              <input
-                type={showPass ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`w-full rounded-xl border px-4 py-2.5 pr-10 text-sm transition focus:outline-none focus:ring-2 focus:ring-indigo-500/20 \${
-                  isDark ? "border-slate-700 bg-slate-900/80 text-white focus:border-indigo-500" : "border-slate-300 bg-white text-slate-900 focus:border-indigo-600"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass(!showPass)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 \${isDark ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-700"}`}
-              >
-                {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+              <input type={showPass ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <button type="button" onClick={() => setShowPass(!showPass)} style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="absolute right-3 top-1/2 -translate-y-1/2 p-1">{showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
             </div>
           </div>
-
           <div>
-            <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 \${isDark ? "text-slate-300" : "text-slate-600"}`}>
-              Confirm Password
-            </label>
+            <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Confirm Password</label>
             <div className="relative">
-              <input
-                type={showConfirm ? "text" : "password"}
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`w-full rounded-xl border px-4 py-2.5 pr-10 text-sm transition focus:outline-none focus:ring-2 focus:ring-indigo-500/20 \${
-                  isDark ? "border-slate-700 bg-slate-900/80 text-white focus:border-indigo-500" : "border-slate-300 bg-white text-slate-900 focus:border-indigo-600"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 \${isDark ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-700"}`}
-              >
-                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+              <input type={showConfirm ? "text" : "password"} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="absolute right-3 top-1/2 -translate-y-1/2 p-1">{showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
             </div>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-600/30 hover:bg-indigo-500 transition disabled:opacity-50"
-          >
+          <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition disabled:opacity-50">
             {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className={`w-full border-t \${isDark ? "border-slate-800" : "border-slate-200"}`} />
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className={`px-3 font-medium \${isDark ? "bg-[#0f172a] text-slate-400" : "bg-white text-slate-500"}`}>or register with</span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setShowGoogleModal(true)}
-          className={`flex w-full items-center justify-center gap-3 rounded-xl border py-2.5 text-sm font-semibold transition \${
-            isDark ? "border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800" : "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100"
-          }`}
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-          </svg>
-          Continue with Google
-        </button>
-
-        <p className={`mt-6 text-center text-xs \${isDark ? "text-slate-400" : "text-slate-500"}`}>
-          Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-indigo-500 hover:text-indigo-400">
-            Sign In
-          </Link>
+        <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-6 text-center text-xs">
+          Already have an account? <Link to="/login" className="font-semibold text-indigo-500 hover:underline">Sign In</Link>
         </p>
       </div>
-
-      {showGoogleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
-          <div className={`w-full max-w-sm rounded-2xl border p-6 shadow-2xl \${isDark ? "border-slate-800 bg-[#0f172a] text-white" : "border-slate-200 bg-white text-slate-900"}`}>
-            <h3 className="text-base font-bold">Google Authentication Setup</h3>
-            <p className={`mt-2 text-xs leading-relaxed \${isDark ? "text-slate-400" : "text-slate-600"}`}>
-              To enable real Google Sign-In, enable the <strong>Google</strong> provider under <strong>Supabase Dashboard &rarr; Authentication &rarr; Sign In / Providers</strong> and paste your Google Cloud OAuth Client ID and Secret.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowGoogleModal(false)}
-              className="mt-5 w-full rounded-xl bg-indigo-600 py-2.5 text-xs font-semibold text-white"
-            >
-              Understood
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
