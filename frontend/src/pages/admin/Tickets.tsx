@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { Link, useSearchParams } from "react-router-dom"
 import { AppShell } from "@/layouts/Sidebar"
 import { PageHeader } from "@/layouts/PageHeader"
 import { PageError, PageLoading } from "@/components/ui/PageState"
@@ -8,13 +8,21 @@ import { SearchInput } from "@/components/ui/Input"
 import { useTickets, useCategories, useDepartments } from "@/hooks/useData"
 
 export function AdminTickets() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialDept = searchParams.get("dept") || "all"
   const { tickets, loading, error } = useTickets()
   const { categories } = useCategories()
   const { departments } = useDepartments()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [deptFilter, setDeptFilter] = useState("all")
+  const [deptFilter, setDeptFilter] = useState(initialDept)
   const [catFilter, setCatFilter] = useState("all")
+
+  useEffect(() => {
+    const d = searchParams.get("dept")
+    setDeptFilter(d || "all")
+    setCatFilter("all")
+  }, [searchParams])
 
   if (loading) return <AppShell role="admin"><PageLoading /></AppShell>
   if (error) return <AppShell role="admin"><PageError message={error} /></AppShell>
@@ -45,17 +53,28 @@ export function AdminTickets() {
             <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tickets, subject, requestor, or assignee..." className="w-full" />
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer">
               <option value="all">All Statuses</option>
               <option value="open">Open</option>
               <option value="in_progress">Assigned</option>
               <option value="resolved">Resolved</option>
             </select>
-            <select value={deptFilter} onChange={(e) => { setDeptFilter(e.target.value); setCatFilter("all") }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+            <select
+              value={deptFilter}
+              onChange={(e) => {
+                const val = e.target.value
+                setDeptFilter(val)
+                setCatFilter("all")
+                if (val === "all") searchParams.delete("dept")
+                else searchParams.set("dept", val)
+                setSearchParams(searchParams, { replace: true })
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer"
+            >
               <option value="all">All Departments</option>
               {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
-            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 cursor-pointer">
               <option value="all">All Categories</option>
               {categories.filter((c) => deptFilter === "all" || c.department_id === deptFilter).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>

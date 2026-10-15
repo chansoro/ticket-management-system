@@ -7,9 +7,15 @@ export function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPass, setShowPass] = useState(false)
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState(() => localStorage.getItem("resolvr_theme") !== "light")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+
+  const toggleTheme = () => {
+    const next = !isDark
+    setIsDark(next)
+    localStorage.setItem("resolvr_theme", next ? "dark" : "light")
+  }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,7 +27,7 @@ export function Login() {
 
   return (
     <div style={{ backgroundColor: isDark ? "#020617" : "#f1f5f9", color: isDark ? "#ffffff" : "#0f172a" }} className="flex min-h-screen items-center justify-center px-4 py-12 relative transition-colors">
-      <button type="button" onClick={() => setIsDark(!isDark)} style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#cbd5e1", color: isDark ? "#fbbf24" : "#334155" }} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm">
+      <button type="button" onClick={toggleTheme} style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#cbd5e1", color: isDark ? "#fbbf24" : "#334155" }} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm cursor-pointer">
         {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
       </button>
       <div style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#e2e8f0" }} className="w-full max-w-md rounded-3xl border p-8 sm:p-10 shadow-2xl">

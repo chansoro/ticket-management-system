@@ -142,7 +142,7 @@ export function AdminDevelopers() {
                   <span className="font-semibold text-slate-700">
                     {deptTickets.length} active tickets {unassigned > 0 && `(${unassigned} unassigned)`}
                   </span>
-                  <Link to="/admin/tickets" className="font-semibold text-indigo-600 hover:text-indigo-500">
+                  <Link to={"/admin/tickets?dept=" + dept.id} className="font-semibold text-indigo-600 hover:text-indigo-500">
                     View Queue →
                   </Link>
                 </div>

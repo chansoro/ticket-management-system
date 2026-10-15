@@ -83,11 +83,11 @@ export function AdminUsers() {
           <table className="w-full table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                <th className="py-3.5 px-5 w-[32%]">User</th>
-                <th className="py-3.5 px-4 w-[18%]">Role</th>
-                <th className="py-3.5 px-4 w-[24%]">Department</th>
-                <th className="py-3.5 px-4 w-[14%]">Status</th>
-                <th className="py-3.5 px-5 w-[12%] text-right">Actions</th>
+                <th className="py-3.5 px-5 w-[23%]">User</th>
+                <th className="py-3.5 px-3 w-[16%]">Role</th>
+                <th className="py-3.5 px-3 w-[31%]">Department</th>
+                <th className="py-3.5 px-3 w-[16%]">Status</th>
+                <th className="py-3.5 px-5 w-[14%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -102,24 +102,24 @@ export function AdminUsers() {
                       <p className="font-bold text-slate-900 truncate">{p.full_name}</p>
                       <p className="text-xs text-slate-500 font-mono truncate">{p.email}</p>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-3">
                       <select value={role} onChange={(e) => changeRole(p.id, e.target.value as UserRole)} className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold focus:outline-none">
                         <option value="user">Requestor</option>
                         <option value="developer">Developer</option>
                         <option value="admin">Admin</option>
                       </select>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-3">
                       {role === "developer" ? (
                         <select value={dept ?? ""} onChange={(e) => changeDept(p.id, e.target.value || null)} className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold focus:outline-none">
                           <option value="">No Department</option>
                           {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                       ) : (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-xs text-slate-400 pl-2">—</span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-3">
                       <select value={active ? "active" : "inactive"} onChange={(e) => changeStatus(p.id, e.target.value === "active")} className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold focus:outline-none">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>

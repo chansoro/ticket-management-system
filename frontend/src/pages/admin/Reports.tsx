@@ -56,32 +56,23 @@ export function AdminReports() {
 
   const filteredRequestors = selectedRequestor === "all" ? requestors : requestors.filter((r) => r.id === selectedRequestor)
 
+  // CSV ONLY CONTAINS OPERATIONS RESOLUTION STATEMENT
   const handleDownloadCSV = () => {
     const q = (v: any) => "\"" + String(v ?? "").split("\"").join("\"\"") + "\""
     const rows: string[] = []
-    rows.push([q("RESOLVR TICKET MANAGEMENT SYSTEM - OFFICIAL REPORT"), q(scopeLabel)].join(","))
+    rows.push([q("RESOLVR ITSM PLATFORM - OPERATIONS RESOLUTION STATEMENT"), q(scopeLabel)].join(","))
     rows.push([q("Generated On"), q(new Date().toLocaleString())].join(","))
     rows.push("")
-    rows.push("SECTION 1: DEVELOPER RESOLUTION SUMMARY")
-    rows.push([q("Developer Name"), q("Email Address"), q("Department"), q("Period"), q("Resolved"), q("Pending"), q("Total Assigned"), q("Resolution Rate")].join(","))
+    rows.push([q("Specialist Developer"), q("Email Address"), q("Department Queue"), q("Report Scope"), q("Resolved"), q("Pending"), q("Total Assigned"), q("Resolution Rate")].join(","))
     devRows.forEach((d) => {
       rows.push([q(d.full_name), q(d.email), q(d.deptName), q(scopeLabel), q(d.resolved), q(d.pending), q(d.total), q(String(d.rate) + "%")].join(","))
-    })
-    rows.push("")
-    rows.push("SECTION 2: PER REQUESTOR TICKET BREAKDOWN")
-    rows.push([q("Requestor Name"), q("Email"), q("Ticket #"), q("Subject"), q("Priority"), q("Status"), q("Assigned Developer"), q("Resolution Comment"), q("Created Date")].join(","))
-    requestors.forEach((req) => {
-      const rTickets = filteredTickets.filter((t) => t.requestor_id === req.id)
-      rTickets.forEach((t) => {
-        rows.push([q(req.full_name), q(req.email), q("#" + t.ticket_number), q(t.subject), q(t.priority), q(t.status), q(t.assignedTo ?? "Unassigned"), q(t.resolution_comment ?? ""), q(t.created)].join(","))
-      })
     })
     const blob = new Blob(["\uFEFF" + rows.join("\r\n")], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
     const suffix = scope === "year" ? "Year_" + String(selectedYear) : scope === "this_month" ? "This_Month" : "Overall"
-    a.download = "Resolvr_Operations_Report_" + suffix + ".csv"
+    a.download = "Resolvr_Operations_Resolution_Statement_" + suffix + ".csv"
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -114,42 +105,47 @@ export function AdminReports() {
         </div>
 
         <div className="print-statement rounded-2xl border border-slate-200/80 bg-white p-8 shadow-xs">
-          <div className="border-b-2 border-slate-900 pb-4 mb-5 flex items-start justify-between">
-            <div>
-              <p className="text-xs font-black tracking-widest uppercase text-indigo-600">RESOLVR ITSM PLATFORM</p>
-              <h2 className="text-xl font-black text-slate-900 mt-1">OPERATIONS RESOLUTION STATEMENT</h2>
-              <p className="text-xs text-slate-500">Audited developer resolution capacity & service performance</p>
+          <div>
+            <div className="border-b-2 border-slate-900 pb-5 mb-6 flex items-start justify-between">
+              <div>
+                <p className="text-xs font-black tracking-widest uppercase text-indigo-600">RESOLVR ITSM PLATFORM</p>
+                <h2 className="text-2xl font-black text-slate-900 mt-1">OPERATIONS RESOLUTION STATEMENT</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Audited developer resolution capacity & service performance</p>
+              </div>
+              <div className="text-right text-xs text-slate-600 font-mono space-y-1">
+                <p>Statement Scope: <strong className="text-slate-900">{scopeLabel}</strong></p>
+                <p>Generated: {now.toLocaleDateString()} {now.toLocaleTimeString()}</p>
+              </div>
             </div>
-            <div className="text-right text-xs text-slate-600 font-mono space-y-0.5">
-              <p>Statement Scope: <strong className="text-slate-900">{scopeLabel}</strong></p>
-              <p>Generated: {now.toLocaleDateString()} {now.toLocaleTimeString()}</p>
-            </div>
-          </div>
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b-2 border-slate-200 bg-slate-50 font-bold uppercase text-slate-600">
-                <th className="py-2 px-3">Specialist Developer</th>
-                <th className="py-2 px-3">Department Queue</th>
-                <th className="py-2 px-3 text-center">Resolved</th>
-                <th className="py-2 px-3 text-center">Pending</th>
-                <th className="py-2 px-3 text-center">Total Assigned</th>
-                <th className="py-2 px-3 text-right">Resolution Rate</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {devRows.map((dev) => (
-                <tr key={dev.id}>
-                  <td className="py-1.5 px-3"><span className="font-bold text-slate-900">{dev.full_name}</span> <span className="text-slate-400 font-mono">({dev.email})</span></td>
-                  <td className="py-1.5 px-3 font-medium text-slate-700">{dev.deptName}</td>
-                  <td className="py-1.5 px-3 text-center font-bold text-emerald-700">{dev.resolved}</td>
-                  <td className="py-1.5 px-3 text-center font-bold text-amber-700">{dev.pending}</td>
-                  <td className="py-1.5 px-3 text-center font-black text-slate-900">{dev.total}</td>
-                  <td className="py-1.5 px-3 text-right font-black text-indigo-700">{dev.rate}%</td>
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b-2 border-slate-300 bg-slate-50 font-bold uppercase text-slate-700">
+                  <th className="py-3 px-3">Specialist Developer</th>
+                  <th className="py-3 px-3">Department Queue</th>
+                  <th className="py-3 px-3 text-center">Resolved</th>
+                  <th className="py-3 px-3 text-center">Pending</th>
+                  <th className="py-3 px-3 text-center">Total Assigned</th>
+                  <th className="py-3 px-3 text-right">Resolution Rate</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="mt-6 border-t border-slate-200 pt-3 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {devRows.map((dev) => (
+                  <tr key={dev.id}>
+                    <td className="py-2.5 px-3">
+                      <p className="font-bold text-slate-900">{dev.full_name}</p>
+                      <p className="text-[11px] text-slate-500 font-mono">{dev.email}</p>
+                    </td>
+                    <td className="py-2.5 px-3 font-medium text-slate-700">{dev.deptName}</td>
+                    <td className="py-2.5 px-3 text-center font-bold text-emerald-700">{dev.resolved}</td>
+                    <td className="py-2.5 px-3 text-center font-bold text-amber-700">{dev.pending}</td>
+                    <td className="py-2.5 px-3 text-center font-black text-slate-900">{dev.total}</td>
+                    <td className="py-2.5 px-3 text-right font-black text-indigo-700">{dev.rate}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-8 border-t-2 border-slate-200 pt-4 flex items-center justify-between text-xs text-slate-500 font-mono">
             <span>Resolvr Ticket Management System — Official Audit Ledger</span>
             <span>Verified Operations Statement</span>
           </div>
