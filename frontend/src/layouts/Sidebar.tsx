@@ -119,9 +119,11 @@ export function Sidebar({ role, userName, unreadCount = 0 }: SidebarProps) {
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-md shadow-indigo-500/20">
             <ShieldCheck className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-base font-extrabold tracking-tight text-white leading-none">Resolvr</p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-indigo-400">Ticket Management System</p>
+            <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-400 whitespace-nowrap">
+              Ticket Management System
+            </p>
           </div>
         </div>
       </div>
@@ -134,9 +136,9 @@ export function Sidebar({ role, userName, unreadCount = 0 }: SidebarProps) {
           <NavLink
             key={to}
             to={to}
-            end={to === `/${role}`}
+            end={to === `/\${role}`}
             className={({ isActive }) =>
-              `group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
+              `group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all \${
                 isActive
                   ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:bg-slate-800/75 hover:text-slate-100'
@@ -146,7 +148,7 @@ export function Sidebar({ role, userName, unreadCount = 0 }: SidebarProps) {
             {({ isActive }) => (
               <>
                 {isActive && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-white" />}
-                <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} strokeWidth={1.75} />
+                <Icon className={`h-[18px] w-[18px] transition-colors \${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} strokeWidth={1.75} />
                 <span className="flex-1">{label}</span>
                 {label === "Notifications" && unreadCount > 0 && (
                   <span className="min-w-5 rounded-full bg-indigo-500 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">
@@ -207,7 +209,7 @@ export function AppShell({
             <button
               type="button"
               className="font-semibold text-indigo-600 hover:underline"
-              onClick={() => navigate(`/${sidebarProps.role}/notifications`)}
+              onClick={() => navigate(`/\${sidebarProps.role}/notifications`)}
             >
               View notifications
             </button>

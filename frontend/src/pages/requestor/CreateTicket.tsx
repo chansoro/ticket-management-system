@@ -1,146 +1,154 @@
-import { useEffect, useMemo, useState } from "react"
+﻿import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AppShell } from "@/layouts/Sidebar"
 import { PageHeader } from "@/layouts/PageHeader"
+import { Input, Select, Textarea } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
-import { Input, Textarea, Select, FormField } from "@/components/ui/Input"
-import { supabase } from "@/lib/supabase"
+import { PageError, PageLoading } from "@/components/ui/PageState"
+import { useCategories, useDepartments } from "@/hooks/useData"
 import { useAuth } from "@/contexts/AuthContext"
-import { useCategories } from "@/hooks/useData"
-
-type TicketDraft = {
-  subject: string
-  category: string
-  priority: string
-  description: string
-}
-
-const emptyDraft: TicketDraft = { subject: "", category: "", priority: "", description: "" }
+import { supabase } from "@/lib/supabase"
+import type { TicketPriorityDb } from "@/lib/tickets"
 
 export function CreateTicket() {
   const navigate = useNavigate()
   const { profile } = useAuth()
-  const { categories } = useCategories()
-  const storageKey = profile ? `ticket-draft:${profile.id}` : "ticket-draft"
-  const [form, setForm] = useState<TicketDraft>(emptyDraft)
-  const [restored, setRestored] = useState(false)
-  const [error, setError] = useState("")
-  const [saving, setSaving] = useState(false)
+  const { categories, loading, error } = useCategories()
+  const { departments } = useDepartments()
 
-  const isDirty = useMemo(
-    () => Object.values(form).some((value) => value.trim() !== ""),
-    [form],
-  )
+  const [subject, setSubject] = useState("")
+  const [categoryId, setCategoryId] = useState("")
+  const [priority, setPriority] = useState<TicketPriorityDb>("medium")
+  const [description, setDescription] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [err, setErr] = useState("")
 
-  useEffect(() => {
-    if (!profile || restored) return
-    const saved = sessionStorage.getItem(storageKey)
-    if (saved) {
-      try {
-        setForm({ ...emptyDraft, ...JSON.parse(saved) })
-      } catch {
-        sessionStorage.removeItem(storageKey)
-      }
-    }
-    setRestored(true)
-  }, [profile, restored, storageKey])
+  if (loading) return <AppShell role="requestor"><PageLoading /></AppShell>
+  if (error) return <AppShell role="requestor"><PageError message={error} /></AppShell>
 
-  useEffect(() => {
-    if (!restored) return
-    if (isDirty) sessionStorage.setItem(storageKey, JSON.stringify(form))
-    else sessionStorage.removeItem(storageKey)
-  }, [form, isDirty, restored, storageKey])
+  const selectedCat = categories.find((c) => c.id === categoryId)
+  const routedDept = selectedCat ? departments.find((d) => d.id === selectedCat.department_id) : null
 
-  useEffect(() => {
-    function warnBeforeUnload(event: BeforeUnloadEvent) {
-      if (!isDirty || saving) return
-      event.preventDefault()
-      event.returnValue = ""
-    }
-
-    window.addEventListener("beforeunload", warnBeforeUnload)
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload)
-  }, [isDirty, saving])
-
-  async function submit(event: React.FormEvent) {
-    event.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     if (!profile) return
+    setSubmitting(true)
+    setErr("")
 
-    setSaving(true)
-    setError("")
+    const { data: ticketNumData } = await supabase.rpc("generate_ticket_number")
+    const generatedNumber = (ticketNumData as string) ?? `\${Math.floor(1000 + Math.random() * 9000)}`
 
-    const { data, error: submitError } = await supabase
+    const { data: newTicket, error: insertError } = await supabase
       .from("tickets")
       .insert({
-        subject: form.subject,
-        description: form.description,
-        category_id: form.category,
-        priority: form.priority.toLowerCase(),
+        ticket_number: generatedNumber,
+        subject: subject.trim(),
+        description: description.trim(),
+        category_id: categoryId,
+        priority,
+        status: "open",
         requestor_id: profile.id,
       })
       .select("id")
       .single()
 
-    if (submitError) {
-      setError(submitError.message)
-      setSaving(false)
-      return
+    if (insertError) {
+      setErr(insertError.message)
+      setSubmitting(false)
+    } else {
+      window.dispatchEvent(new Event("notifications-updated"))
+      navigate(`/requestor/tickets/\${newTicket.id}`)
     }
-
-    sessionStorage.removeItem(storageKey)
-    setForm(emptyDraft)
-    navigate(`/requestor/tickets/${data.id}`, { replace: true })
-  }
-
-  function set(key: keyof TicketDraft) {
-    return (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      setForm((current) => ({ ...current, [key]: event.target.value }))
-    }
-  }
-
-  function cancel() {
-    if (isDirty && !window.confirm("Discard the unsaved ticket information?")) return
-    sessionStorage.removeItem(storageKey)
-    setForm(emptyDraft)
-    navigate("/requestor")
   }
 
   return (
     <AppShell role="requestor">
-      <div className="max-w-2xl px-8 py-8">
-        <PageHeader title="Submit Request" subtitle="Tell us what you need help with." />
-        <div className="rounded-2xl border bg-white p-8">
-          <form onSubmit={submit} className="space-y-6">
-            {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-            <FormField label="Subject" required>
-              <Input value={form.subject} onChange={set("subject")} required />
-            </FormField>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField label="Category" required>
-                <Select value={form.category} onChange={set("category")} required>
-                  <option value="">Select category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>{category.name}</option>
-                  ))}
-                </Select>
-              </FormField>
-              <FormField label="Priority" required>
-                <Select value={form.priority} onChange={set("priority")} required>
-                  <option value="">Select priority</option>
-                  {["Low", "Medium", "High", "Critical"].map((priority) => (
-                    <option key={priority}>{priority}</option>
-                  ))}
-                </Select>
-              </FormField>
+      <div className="space-y-6">
+        <PageHeader
+          title="Submit Request"
+          subtitle="Tell us what you need help with. Your ticket will be auto-routed to the responsible technical team."
+        />
+
+        {err && <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{err}</div>}
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <form onSubmit={handleSubmit} className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Subject
+              </label>
+              <Input
+                required
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+              />
             </div>
-            <FormField label="Description" required>
-              <Textarea rows={6} value={form.description} onChange={set("description")} required />
-            </FormField>
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={cancel}>Cancel</Button>
-              <Button type="submit" disabled={saving}>{saving ? "Submitting…" : "Submit Request"}</Button>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Category
+                </label>
+                <Select required value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                  <option value="">Select a category...</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Priority
+                </label>
+                <Select value={priority} onChange={(e) => setPriority(e.target.value as TicketPriorityDb)}>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Description
+              </label>
+              <Textarea
+                required
+                rows={6}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="secondary" onClick={() => navigate("/requestor/tickets")}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting || !subject || !categoryId || !description}>
+                {submitting ? "Submitting..." : "Submit Request"}
+              </Button>
             </div>
           </form>
+
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+            <h2 className="text-base font-bold text-slate-900">Automatic Routing</h2>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              When you choose a category, your ticket automatically joins the assigned department queue without manual triage delays.
+            </p>
+            {routedDept ? (
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4">
+                <p className="text-xs font-bold uppercase text-indigo-700">Target Department</p>
+                <p className="mt-1 text-sm font-bold text-slate-900">{routedDept.name}</p>
+                <p className="text-xs text-slate-500">{routedDept.email}</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400">
+                Select a category to preview its routing department.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </AppShell>

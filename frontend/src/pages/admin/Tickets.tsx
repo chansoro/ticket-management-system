@@ -45,7 +45,7 @@ export function AdminTickets() {
           title="Support Tickets"
           subtitle="Tickets are auto-routed to their department queue based on the chosen category."
           action={
-            <span className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs">
+            <span className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs">
               Showing {filtered.length} of {tickets.length} tickets
             </span>
           }
@@ -56,14 +56,14 @@ export function AdminTickets() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tickets, subject, requestor, or assignee..."
-            className="flex-1 min-w-[260px]"
+            className="flex-1 min-w-[280px]"
           />
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:flex lg:items-center">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 lg:flex lg:items-center">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full lg:w-40 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 focus:border-indigo-600 focus:outline-none"
+              className="w-full lg:w-44 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 focus:border-indigo-600 focus:outline-none"
             >
               <option value="all">All Statuses</option>
               <option value="open">Open</option>
@@ -77,7 +77,7 @@ export function AdminTickets() {
                 setDeptFilter(e.target.value)
                 setCatFilter("all")
               }}
-              className="w-full lg:w-52 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 focus:border-indigo-600 focus:outline-none"
+              className="w-full lg:w-56 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 focus:border-indigo-600 focus:outline-none"
             >
               <option value="all">All Departments</option>
               {departments.map((d) => (
@@ -88,7 +88,7 @@ export function AdminTickets() {
             <select
               value={catFilter}
               onChange={(e) => setCatFilter(e.target.value)}
-              className="w-full lg:w-56 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 focus:border-indigo-600 focus:outline-none"
+              className="w-full lg:w-60 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 focus:border-indigo-600 focus:outline-none"
             >
               <option value="all">All Categories</option>
               {categories
@@ -105,13 +105,13 @@ export function AdminTickets() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  <th className="py-3.5 px-4">Ticket</th>
+                  <th className="py-3.5 px-4 w-28">Ticket</th>
                   <th className="py-3.5 px-4">Subject</th>
-                  <th className="py-3.5 px-4">Requestor</th>
-                  <th className="py-3.5 px-4">Department & Category</th>
-                  <th className="py-3.5 px-4">Priority</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4">Assigned Developer</th>
+                  <th className="py-3.5 px-4 w-44">Requestor</th>
+                  <th className="py-3.5 px-4 w-52">Department & Category</th>
+                  <th className="py-3.5 px-4 w-28">Priority</th>
+                  <th className="py-3.5 px-4 w-28">Status</th>
+                  <th className="py-3.5 px-4 w-44">Assigned Developer</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -121,12 +121,12 @@ export function AdminTickets() {
                   return (
                     <tr key={t.id} className="hover:bg-slate-50/90 transition">
                       <td className="py-3.5 px-4 font-mono text-xs font-bold text-indigo-600 whitespace-nowrap">
-                        <Link to={`/admin/tickets/${t.id}`} className="hover:underline">
+                        <Link to={`/admin/tickets/\${t.id}`} className="hover:underline">
                           #{t.ticket_number}
                         </Link>
                       </td>
-                      <td className="py-3.5 px-4 max-w-xs">
-                        <Link to={`/admin/tickets/${t.id}`} className="font-semibold text-slate-900 hover:text-indigo-600 line-clamp-1">
+                      <td className="py-3.5 px-4 min-w-[200px]">
+                        <Link to={`/admin/tickets/\${t.id}`} className="font-semibold text-slate-900 hover:text-indigo-600 line-clamp-1">
                           {t.subject}
                         </Link>
                         {t.resolution_comment && (
@@ -138,7 +138,7 @@ export function AdminTickets() {
                         <span className="inline-flex rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
                           {deptName}
                         </span>
-                        <p className="mt-0.5 text-xs text-slate-500">{t.category}</p>
+                        <p className="mt-0.5 text-xs text-slate-500 truncate">{t.category}</p>
                       </td>
                       <td className="py-3.5 px-4"><PriorityBadge priority={t.priority} /></td>
                       <td className="py-3.5 px-4"><StatusBadge status={t.status} /></td>
@@ -147,7 +147,7 @@ export function AdminTickets() {
                           <span className="text-xs font-semibold text-slate-800">{t.assignedTo}</span>
                         ) : (
                           <Link
-                            to={`/admin/tickets/${t.id}`}
+                            to={`/admin/tickets/\${t.id}`}
                             className="inline-flex items-center rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-500/20 hover:bg-amber-100"
                           >
                             Assign Developer →

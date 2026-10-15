@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 import { AppShell } from "@/layouts/Sidebar"
 import { BackLink } from "@/layouts/PageHeader"
@@ -9,8 +9,6 @@ import { Input, Label, Select, Textarea } from "@/components/ui/Input"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { formatDateTime, mapTicket, ticketSelect, type Profile, type Ticket, type TicketActivity } from "@/lib/tickets"
-
-const cardClass = "rounded-2xl border border-[#e5e5ea] bg-white p-6 shadow-sm"
 
 export function AdminTicketDetail() {
   const { id } = useParams()
@@ -23,11 +21,8 @@ export function AdminTicketDetail() {
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
 
-  // Resolution comment modal state
   const [showResolveModal, setShowResolveModal] = useState(false)
   const [resolutionComment, setResolutionComment] = useState("")
-
-  // Developer reassignment verification modal state
   const [showReassignVerify, setShowReassignVerify] = useState(false)
   const [adminPassword, setAdminPassword] = useState("")
   const [verifyError, setVerifyError] = useState("")
@@ -51,41 +46,30 @@ export function AdminTicketDetail() {
     setSelected(nextTicket.assigned_to ?? "")
     setResolutionComment(nextTicket.resolution_comment ?? "")
 
-    const { data: category, error: categoryError } = await supabase
+    const { data: category } = await supabase
       .from("categories")
       .select("department_id")
       .eq("id", nextTicket.category_id)
       .single()
 
-    if (categoryError || !category) {
-      setError(categoryError?.message ?? "Ticket category not found.")
-      setLoading(false)
-      return
+    if (category) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("role", "developer")
+        .eq("is_active", true)
+        .eq("department_id", category.department_id)
+        .order("full_name")
+
+      setDevelopers((profiles ?? []) as Profile[])
     }
 
-    const { data: profiles, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("role", "developer")
-      .eq("is_active", true)
-      .eq("department_id", category.department_id)
-      .order("full_name")
-
-    if (profileError) {
-      setError(profileError.message)
-      setLoading(false)
-      return
-    }
-
-    setDevelopers((profiles ?? []) as Profile[])
-
-    const { data: events, error: activityError } = await supabase
+    const { data: events } = await supabase
       .from("ticket_activity")
       .select("*")
       .eq("ticket_id", id)
       .order("created_at")
 
-    if (activityError) setError(activityError.message)
     setActivity((events ?? []) as TicketActivity[])
     setLoading(false)
   }
@@ -93,18 +77,6 @@ export function AdminTicketDetail() {
   useEffect(() => {
     void load()
   }, [id])
-
-  function handleSaveAssignmentClick() {
-    if (!ticket) return
-    // If ticket already has an assigned developer and Admin is switching to another developer, require verification
-    if (ticket.assigned_to && ticket.assigned_to !== selected) {
-      setAdminPassword("")
-      setVerifyError("")
-      setShowReassignVerify(true)
-      return
-    }
-    void executeAssign()
-  }
 
   async function executeAssign() {
     if (!ticket) return
@@ -114,14 +86,10 @@ export function AdminTicketDetail() {
     const payload: { assigned_to: string | null; status?: "open" | "in_progress" } = {
       assigned_to: selected || null,
     }
-
     if (selected && ticket.statusDb === "open") payload.status = "in_progress"
     if (!selected && ticket.statusDb === "in_progress") payload.status = "open"
 
-    const { error: updateError } = await supabase
-      .from("tickets")
-      .update(payload)
-      .eq("id", id)
+    const { error: updateError } = await supabase.from("tickets").update(payload).eq("id", id)
 
     if (updateError) setError(updateError.message)
     else {
@@ -131,7 +99,18 @@ export function AdminTicketDetail() {
     setSaving(false)
   }
 
-  async function confirmVerifiedReassign(e: React.FormEvent) {
+  const handleSaveAssignmentClick = () => {
+    if (!ticket) return
+    if (ticket.assigned_to && ticket.assigned_to !== selected) {
+      setAdminPassword("")
+      setVerifyError("")
+      setShowReassignVerify(true)
+      return
+    }
+    void executeAssign()
+  }
+
+  const confirmVerifiedReassign = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!adminProfile?.email) return
     setSaving(true)
@@ -152,7 +131,7 @@ export function AdminTicketDetail() {
     await executeAssign()
   }
 
-  async function changeStatus(value: string) {
+  const changeStatus = async (value: string) => {
     if (value === "resolved") {
       setResolutionComment(ticket?.resolution_comment ?? "")
       setShowResolveModal(true)
@@ -166,7 +145,7 @@ export function AdminTicketDetail() {
     }
   }
 
-  async function confirmResolveWithComment(e: React.FormEvent) {
+  const confirmResolveWithComment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!resolutionComment.trim()) {
       setError("Please enter a resolution comment for the requestor.")
@@ -178,13 +157,13 @@ export function AdminTicketDetail() {
       .update({
         status: "resolved",
         resolution_comment: resolutionComment.trim(),
+        resolved_at: new Date().toISOString(),
       })
       .eq("id", id)
 
     setSaving(false)
-    if (updateError) {
-      setError(updateError.message)
-    } else {
+    if (updateError) setError(updateError.message)
+    else {
       setShowResolveModal(false)
       await load()
       window.dispatchEvent(new Event("notifications-updated"))
@@ -194,146 +173,158 @@ export function AdminTicketDetail() {
   if (loading) return <AppShell role="admin"><PageLoading /></AppShell>
   if (error || !ticket) return <AppShell role="admin"><PageError message={error || "Not found"} /></AppShell>
 
-  const nextStatuses = ticket.statusDb === "open"
-    ? (ticket.assigned_to ? ["open", "in_progress", "resolved"] : ["open", "resolved"])
-    : ticket.statusDb === "in_progress"
-      ? ["in_progress", "resolved"]
-      : ["resolved", "open"]
+  // Timeline synthesizer: guarantees no ticket has an empty activity card
+  const timeline = activity.length > 0
+    ? activity.map((act) => ({
+        id: act.id,
+        label: act.activity_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        date: formatDateTime(act.created_at),
+        badge: "●",
+      }))
+    : [
+        { id: "1", label: `Ticket Submitted by \${ticket.requestor}`, date: formatDateTime(ticket.created_at), badge: "✓" },
+        ...(ticket.assignedTo
+          ? [{ id: "2", label: `Assigned to \${ticket.assignedTo}`, date: formatDateTime(ticket.updated_at), badge: "→" }]
+          : []),
+        ...(ticket.statusDb === "resolved"
+          ? [{ id: "3", label: "Ticket Resolved & Verification Completed", date: formatDateTime(ticket.resolved_at ?? ticket.updated_at), badge: "★" }]
+          : []),
+      ]
 
   return (
     <AppShell role="admin">
-      <div className="max-w-4xl px-8 py-8">
-        <BackLink to="/admin/tickets" label="Back to Tickets" />
-        <div className={`\${cardClass} mb-5`}>
-          <p className="font-mono text-xs">#{ticket.ticket_number}</p>
-          <div className="flex justify-between">
-            <h1 className="text-xl font-semibold">{ticket.subject}</h1>
-            <StatusBadge status={ticket.status} />
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-5">
-          <div className="col-span-2 space-y-5">
-            <div className={cardClass}>
+      <div className="space-y-6">
+        <BackLink to="/admin/tickets" label="Back to Support Tickets" />
+
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-mono text-xs font-bold text-indigo-600">#{ticket.ticket_number}</span>
               <CategoryBadge category={ticket.category} />
-              <div className="mt-3"><PriorityBadge priority={ticket.priority} /></div>
-              <p className="mt-4 text-sm">Requestor: {ticket.requestor} · {ticket.requestorEmail}</p>
-              <p className="mt-4 border-t pt-4 text-sm">{ticket.description}</p>
+              <PriorityBadge priority={ticket.priority} />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">{ticket.subject}</h1>
+          </div>
+          <StatusBadge status={ticket.status} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Requestor Information</h2>
+                <span className="text-xs text-slate-500">Submitted on {formatDateTime(ticket.created_at)}</span>
+              </div>
+              <p className="text-sm font-semibold text-slate-800">
+                {ticket.requestor} <span className="font-normal text-slate-500">({ticket.requestorEmail})</span>
+              </p>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Description</h3>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  {ticket.description}
+                </p>
+              </div>
             </div>
 
             {ticket.resolution_comment && (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-6">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-emerald-800">
-                    Resolution / Comment (Visible to Requestor)
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                    Official Resolution Comment
                   </h2>
                   {ticket.resolved_at && (
-                    <span className="text-xs text-emerald-700">{formatDateTime(ticket.resolved_at)}</span>
+                    <span className="text-xs text-emerald-700 font-medium">{formatDateTime(ticket.resolved_at)}</span>
                   )}
                 </div>
-                <p className="text-sm text-emerald-950 whitespace-pre-wrap">{ticket.resolution_comment}</p>
+                <p className="text-sm text-emerald-950 whitespace-pre-wrap leading-relaxed">{ticket.resolution_comment}</p>
               </div>
             )}
 
-            <div className={cardClass}>
-              <h2 className="mb-4 font-semibold">Activity</h2>
-              {activity.map((item) => (
-                <div key={item.id} className="mb-3 border-l-2 pl-4 text-sm">
-                  {item.activity_type.replaceAll("_", " ")}
-                  <p className="text-xs text-[#aeaeb2]">{formatDateTime(item.created_at)}</p>
-                </div>
-              ))}
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Lifecycle & Activity History</h2>
+              <div className="space-y-4 border-l-2 border-indigo-100 ml-2 pl-4">
+                {timeline.map((item) => (
+                  <div key={item.id} className="relative">
+                    <span className="absolute -left-[23px] top-0 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">
+                      {item.badge}
+                    </span>
+                    <p className="text-sm font-semibold text-slate-800">{item.label}</p>
+                    <p className="text-xs text-slate-400">{item.date}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="space-y-4">
-            <div className={`\${cardClass} p-5`}>
-              <h2 className="mb-3 font-semibold">Assign Developer</h2>
-              <Select value={selected} onChange={(event) => setSelected(event.target.value)}>
+
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+              <h2 className="text-base font-bold text-slate-900">Developer Assignment</h2>
+              <p className="text-xs text-slate-500">
+                Routed to specialists in this ticket&apos;s department queue.
+              </p>
+              <Select value={selected} onChange={(e) => setSelected(e.target.value)}>
                 <option value="">Unassigned</option>
-                {developers.map((developer) => (
-                  <option key={developer.id} value={developer.id}>{developer.full_name}</option>
+                {developers.map((dev) => (
+                  <option key={dev.id} value={dev.id}>{dev.full_name}</option>
                 ))}
               </Select>
-              {!developers.length && (
-                <p className="mt-2 text-sm text-[#6e6e73]">No active developers are assigned to this ticket department.</p>
-              )}
-              <Button className="mt-3 w-full" disabled={saving} onClick={handleSaveAssignmentClick}>
+              <Button className="w-full" disabled={saving} onClick={handleSaveAssignmentClick}>
                 Save Assignment
               </Button>
             </div>
-            <div className={`\${cardClass} p-5`}>
-              <h2 className="mb-3 font-semibold">Status</h2>
-              <Select value={ticket.statusDb} onChange={(event) => void changeStatus(event.target.value)}>
-                {nextStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {status === "in_progress" ? "Assigned" : status.replace(/^./, (character) => character.toUpperCase())}
-                  </option>
-                ))}
+
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+              <h2 className="text-base font-bold text-slate-900">Ticket Lifecycle Status</h2>
+              <Select value={ticket.statusDb} onChange={(e) => void changeStatus(e.target.value)}>
+                <option value="open">Open</option>
+                <option value="in_progress">Assigned</option>
+                <option value="resolved">Resolved</option>
               </Select>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Resolution Comment Modal */}
       {showResolveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form onSubmit={confirmResolveWithComment} className="w-full max-w-lg rounded-2xl border border-[#e5e5ea] bg-white p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-semibold text-[#1d1d1f]">Mark Ticket as Resolved</h3>
-            <p className="text-xs text-[#6e6e73]">
-              Provide a resolution note or comment below. This will be visible to the Requestor ({ticket.requestor}).
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+          <form onSubmit={confirmResolveWithComment} className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-slate-900">Mark Ticket as Resolved</h3>
+            <p className="text-xs text-slate-500">
+              Provide a clear resolution note for requestor <strong>{ticket.requestor}</strong>.
             </p>
-            <div className="space-y-1.5">
-              <Label htmlFor="admin-res-comment">Resolution Comment</Label>
-              <Textarea
-                id="admin-res-comment"
-                rows={4}
-                placeholder="Explain how the issue was resolved..."
-                value={resolutionComment}
-                onChange={(e) => setResolutionComment(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => setShowResolveModal(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={saving || !resolutionComment.trim()}>
-                {saving ? "Saving…" : "Confirm Resolution"}
-              </Button>
+            <Textarea
+              rows={4}
+              placeholder="Explain how the technical issue was resolved..."
+              value={resolutionComment}
+              onChange={(e) => setResolutionComment(e.target.value)}
+              required
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setShowResolveModal(false)}>Cancel</Button>
+              <Button type="submit" disabled={saving || !resolutionComment.trim()}>Confirm Resolution</Button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Developer Switch Verification Modal */}
       {showReassignVerify && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form onSubmit={confirmVerifiedReassign} className="w-full max-w-md rounded-2xl border border-[#e5e5ea] bg-white p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-semibold text-[#1d1d1f]">Verify Developer Reassignment</h3>
-            <p className="text-xs text-[#6e6e73]">
-              You are changing the assigned developer for ticket <strong>#{ticket.ticket_number}</strong>. Please enter your Admin password to verify.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+          <form onSubmit={confirmVerifiedReassign} className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-slate-900">Reassign Developer Authorization</h3>
+            <p className="text-xs text-slate-600">
+              Changing assigned specialist for <strong>#{ticket.ticket_number}</strong>. Confirm admin password:
             </p>
-            {verifyError && (
-              <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{verifyError}</p>
-            )}
-            <div className="space-y-1.5">
-              <Label htmlFor="reassign-pass">Admin Password</Label>
-              <Input
-                id="reassign-pass"
-                type="password"
-                placeholder="Enter your password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => setShowReassignVerify(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? "Verifying…" : "Verify & Reassign"}
-              </Button>
+            {verifyError && <p className="text-xs text-rose-600">{verifyError}</p>}
+            <Input
+              type="password"
+              placeholder="Admin password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              required
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setShowReassignVerify(false)}>Cancel</Button>
+              <Button type="submit" disabled={saving}>Verify & Save</Button>
             </div>
           </form>
         </div>

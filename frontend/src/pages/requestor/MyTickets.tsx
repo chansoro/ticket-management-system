@@ -1,2 +1,72 @@
-import { useState } from "react";import{useNavigate}from"react-router-dom";import{AppShell}from"@/layouts/Sidebar";import{PageHeader}from"@/layouts/PageHeader";import{SearchInput,Select}from"@/components/ui/Input";import{StatusBadge,PriorityBadge}from"@/components/ui/Badge";import{PageError,PageLoading}from"@/components/ui/PageState";import{useCategories,useTickets}from"@/hooks/useData"
-export function MyTickets(){const navigate=useNavigate(),{tickets,loading,error}=useTickets(),{categories}=useCategories();const[search,setSearch]=useState(""),[status,setStatus]=useState("All"),[category,setCategory]=useState("All");if(loading)return<AppShell role="requestor"><PageLoading/></AppShell>;if(error)return<AppShell role="requestor"><PageError message={error}/></AppShell>;const filtered=tickets.filter(t=>(t.subject.toLowerCase().includes(search.toLowerCase())||t.ticket_number.toLowerCase().includes(search.toLowerCase()))&&(status==="All"||t.statusDb===status)&&(category==="All"||t.category_id===category));return<AppShell role="requestor"><div className="max-w-6xl px-8 py-8"><PageHeader title="My Requests" subtitle="View and track your support requests."/><div className="mb-6 flex gap-3"><SearchInput className="flex-1" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search requests..."/><Select className="w-40" value={status} onChange={e=>setStatus(e.target.value)}><option value="All">All Status</option><option value="open">Open</option><option value="in_progress">Assigned</option><option value="resolved">Resolved</option></Select><Select className="w-48" value={category} onChange={e=>setCategory(e.target.value)}><option value="All">All Categories</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select></div><div className="overflow-hidden rounded-2xl border bg-white"><table className="w-full"><thead><tr>{["Request ID","Subject","Category","Priority","Status","Created","Updated"].map(h=><th key={h} className="px-5 py-3 text-left text-xs uppercase text-[#aeaeb2]">{h}</th>)}</tr></thead><tbody>{filtered.map(t=><tr key={t.id} onClick={()=>navigate(`/requestor/tickets/${t.id}`)} className="cursor-pointer border-t hover:bg-gray-50"><td className="px-5 py-4 font-mono text-xs">#{t.ticket_number}</td><td className="px-5 py-4 text-sm font-medium">{t.subject}</td><td className="px-5 py-4 text-sm">{t.category}</td><td className="px-5 py-4"><PriorityBadge priority={t.priority}/></td><td className="px-5 py-4"><StatusBadge status={t.status}/></td><td className="px-5 py-4 text-sm">{t.created}</td><td className="px-5 py-4 text-sm">{t.updated}</td></tr>)}</tbody></table>{!filtered.length&&<p className="p-12 text-center text-sm text-[#aeaeb2]">No requests found</p>}</div></div></AppShell>}
+﻿import { useState } from "react"
+import { AppShell } from "@/layouts/Sidebar"
+import { PageHeader } from "@/layouts/PageHeader"
+import { PageError, PageLoading } from "@/components/ui/PageState"
+import { TicketTable } from "@/components/ui/TicketTable"
+import { SearchInput, Select } from "@/components/ui/Input"
+import { useTickets, useCategories } from "@/hooks/useData"
+import { useAuth } from "@/contexts/AuthContext"
+
+export function MyTickets() {
+  const { profile } = useAuth()
+  const { tickets, loading, error } = useTickets()
+  const { categories } = useCategories()
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+
+  if (loading) return <AppShell role="requestor"><PageLoading /></AppShell>
+  if (error) return <AppShell role="requestor"><PageError message={error} /></AppShell>
+
+  const myTickets = tickets.filter((t) => t.requestor_id === profile?.id)
+
+  const filtered = myTickets.filter((t) => {
+    const term = search.toLowerCase()
+    const matchesSearch = t.ticket_number.toLowerCase().includes(term) || t.subject.toLowerCase().includes(term)
+    const matchesStatus = statusFilter === "all" || t.statusDb === statusFilter
+    const matchesCategory = categoryFilter === "all" || t.category_id === categoryFilter
+    return matchesSearch && matchesStatus && matchesCategory
+  })
+
+  return (
+    <AppShell role="requestor">
+      <div className="space-y-6">
+        <PageHeader
+          title="My Requests"
+          subtitle="View and track your submitted support requests."
+        />
+
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs sm:flex-row sm:items-center">
+          <SearchInput
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tickets by subject or #..."
+            className="flex-1 min-w-[260px]"
+          />
+          <Select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full sm:w-44"
+          >
+            <option value="all">All Statuses</option>
+            <option value="open">Open</option>
+            <option value="in_progress">Assigned</option>
+            <option value="resolved">Resolved</option>
+          </Select>
+          <Select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="w-full sm:w-56"
+          >
+            <option value="all">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </Select>
+        </div>
+
+        <TicketTable tickets={filtered} detailRoute={(id) => `/requestor/tickets/\${id}`} />
+      </div>
+    </AppShell>
+  )
+}
