@@ -41,7 +41,7 @@ export function DeveloperMyTickets() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search assigned tickets by subject or #..."
-            className="flex-1 min-w-[260px]"
+            className="flex-1"
           />
           <Select
             value={statusFilter}
@@ -65,7 +65,7 @@ export function DeveloperMyTickets() {
           </Select>
         </div>
 
-        <TicketTable tickets={filtered} detailRoute={(id) => `/developer/tickets/\${id}`} />
+        <TicketTable tickets={filtered} detailRoute={(ticketId) => "/developer/tickets/" + ticketId} />
       </div>
     </AppShell>
   )

@@ -41,7 +41,7 @@ export function DeveloperResolved() {
           />
         </div>
 
-        <TicketTable tickets={filtered} detailRoute={(id) => `/developer/tickets/\${id}`} />
+        <TicketTable tickets={filtered} detailRoute={(ticketId) => "/developer/tickets/" + ticketId} />
       </div>
     </AppShell>
   )

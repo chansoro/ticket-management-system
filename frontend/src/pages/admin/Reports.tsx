@@ -1,7 +1,6 @@
 ﻿import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { AppShell } from "@/layouts/Sidebar"
-import { PageHeader } from "@/layouts/PageHeader"
 import { PageError, PageLoading } from "@/components/ui/PageState"
 import { PriorityBadge, StatusBadge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -43,7 +42,7 @@ export function AdminReports() {
       return now.toLocaleDateString("en-US", { month: "long", year: "numeric" }) + " Summary"
     }
     if (scope === "year") {
-      return `Year \${selectedYear} Summary`
+      return "Year " + selectedYear + " Summary"
     }
     return "Overall All-Time Summary"
   }, [scope, selectedYear, now])
@@ -110,7 +109,8 @@ export function AdminReports() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
-    link.download = `Resolvr_Report_\${scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, "_")}.csv`
+    const safeName = scope === "year" ? `year_\${selectedYear}` : scope === "this_month" ? "this_month" : "overall"
+    link.download = `Resolvr_Report_\${safeName}.csv`
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -118,7 +118,6 @@ export function AdminReports() {
   return (
     <AppShell role="admin">
       <div className="space-y-6">
-        {/* Modern Right-Aligned Filter & Export Header */}
         <div className="no-print flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">General Reports</h1>
@@ -127,23 +126,23 @@ export function AdminReports() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold">
               <span className="text-indigo-600">Period:</span>
               <select
                 value={scope}
                 onChange={(e) => setScope(e.target.value as ReportScope)}
-                className="bg-transparent font-semibold text-slate-800 focus:outline-none"
+                className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
               >
                 <option value="overall">Overall Summary</option>
-                <option value="this_month">This Month Only</option>
+                <option value="this_month">This Month</option>
                 <option value="year">Specific Year</option>
               </select>
               {scope === "year" && (
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 font-bold text-indigo-600 focus:outline-none"
+                  className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 font-bold text-indigo-600 focus:outline-none cursor-pointer"
                 >
                   {availableYears.map((yr) => (
                     <option key={yr} value={yr}>{yr}</option>
@@ -152,16 +151,16 @@ export function AdminReports() {
               )}
             </div>
 
-            <Button variant="secondary" onClick={handleDownloadCSV}>
+            <Button size="sm" variant="secondary" onClick={handleDownloadCSV}>
               ⬇ Export .CSV
             </Button>
-            <Button onClick={() => window.print()}>
+            <Button size="sm" onClick={() => window.print()}>
               ⎙ Export .PDF Statement
             </Button>
           </div>
         </div>
 
-        {/* SECTION 1: GCash/Bank-Statement-Style Printable Document (Clean Margins & Header) */}
+        {/* PRINT STATEMENT: Official Ledger */}
         <div className="print-statement rounded-2xl border border-slate-200/80 bg-white p-8 shadow-xs">
           <div className="border-b-2 border-slate-900 pb-5 mb-6 flex items-start justify-between">
             <div>
@@ -176,30 +175,30 @@ export function AdminReports() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-visible">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="border-b-2 border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                  <th className="py-3 px-4">Specialist Developer</th>
-                  <th className="py-3 px-4">Department Queue</th>
-                  <th className="py-3 px-4 text-center">Resolved</th>
-                  <th className="py-3 px-4 text-center">Pending</th>
-                  <th className="py-3 px-4 text-center">Total Assigned</th>
-                  <th className="py-3 px-4 text-right">Resolution Rate</th>
+                  <th className="py-2.5 px-4">Specialist Developer</th>
+                  <th className="py-2.5 px-4">Department Queue</th>
+                  <th className="py-2.5 px-4 text-center">Resolved</th>
+                  <th className="py-2.5 px-4 text-center">Pending</th>
+                  <th className="py-2.5 px-4 text-center">Total Assigned</th>
+                  <th className="py-2.5 px-4 text-right">Resolution Rate</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {devRows.map((dev) => (
                   <tr key={dev.id} className="hover:bg-slate-50">
-                    <td className="py-3 px-4">
-                      <p className="font-bold text-slate-900">{dev.full_name}</p>
-                      <p className="text-xs text-slate-500 font-mono">{dev.email}</p>
+                    <td className="py-2 px-4">
+                      <p className="font-bold text-slate-900 text-xs">{dev.full_name}</p>
+                      <p className="text-[11px] text-slate-500 font-mono">{dev.email}</p>
                     </td>
-                    <td className="py-3 px-4 text-xs font-semibold text-slate-700">{dev.deptName}</td>
-                    <td className="py-3 px-4 text-center font-bold text-emerald-700">{dev.resolved}</td>
-                    <td className="py-3 px-4 text-center font-bold text-amber-700">{dev.pending}</td>
-                    <td className="py-3 px-4 text-center font-black text-slate-900">{dev.total}</td>
-                    <td className="py-3 px-4 text-right font-black text-indigo-700">{dev.rate}%</td>
+                    <td className="py-2 px-4 text-xs font-semibold text-slate-700">{dev.deptName}</td>
+                    <td className="py-2 px-4 text-center font-bold text-emerald-700 text-xs">{dev.resolved}</td>
+                    <td className="py-2 px-4 text-center font-bold text-amber-700 text-xs">{dev.pending}</td>
+                    <td className="py-2 px-4 text-center font-black text-slate-900 text-xs">{dev.total}</td>
+                    <td className="py-2 px-4 text-right font-black text-indigo-700 text-xs">{dev.rate}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -207,12 +206,12 @@ export function AdminReports() {
           </div>
 
           <div className="mt-8 border-t border-slate-200 pt-4 flex items-center justify-between text-[11px] text-slate-400 font-mono">
-            <span>Resolvr Ticket Management System — Official Academic Audit Ledger</span>
-            <span>Page 1 of 1</span>
+            <span>Resolvr Ticket Management System — Official Audit Ledger</span>
+            <span>Audited & Verified Operations</span>
           </div>
         </div>
 
-        {/* SECTION 2: Requestor Ticket Breakdown with Exact Column Alignments (Hidden in PDF print) */}
+        {/* SECTION 2: Requestor Ticket Breakdown */}
         <div className="no-print rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -222,7 +221,7 @@ export function AdminReports() {
             <select
               value={selectedRequestor}
               onChange={(e) => setSelectedRequestor(e.target.value)}
-              className="w-full sm:w-72 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-2xs focus:border-indigo-600 focus:outline-none"
+              className="w-full sm:w-72 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-2xs focus:border-indigo-600 focus:outline-none cursor-pointer"
             >
               <option value="all">All Requestors ({requestors.length})</option>
               {requestors.map((r) => (
@@ -259,7 +258,7 @@ export function AdminReports() {
                       <table className="w-full text-left text-xs table-fixed">
                         <thead>
                           <tr className="border-b border-slate-100 uppercase text-slate-400 font-bold">
-                            <th className="py-2 w-24">Ticket #</th>
+                            <th className="py-2 w-28">Ticket #</th>
                             <th className="py-2 w-64">Subject</th>
                             <th className="py-2 w-24">Priority</th>
                             <th className="py-2 w-24">Status</th>
@@ -271,7 +270,7 @@ export function AdminReports() {
                         <tbody className="divide-y divide-slate-100">
                           {reqTickets.map((t) => (
                             <tr key={t.id} className="hover:bg-slate-50/60">
-                              <td className="py-2.5 font-mono font-bold text-indigo-600 truncate">
+                              <td className="py-2.5 font-mono font-bold text-indigo-600 whitespace-nowrap truncate">
                                 <Link to={`/admin/tickets/\${t.id}`} className="hover:underline">
                                   #{t.ticket_number}
                                 </Link>

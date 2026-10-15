@@ -20,9 +20,9 @@ const defaultColumns: Column[] = [
   {
     key: "ticket_number",
     label: "Ticket ID",
-    width: "w-28",
+    width: "w-32 min-w-[120px]",
     render: (t) => (
-      <span className="font-mono text-xs font-bold text-indigo-600">
+      <span className="font-mono text-xs font-bold text-indigo-600 whitespace-nowrap">
         #{t.ticket_number}
       </span>
     ),
@@ -40,7 +40,7 @@ const defaultColumns: Column[] = [
   {
     key: "category",
     label: "Category",
-    width: "w-44",
+    width: "w-52 min-w-[190px]",
     render: (t) => <CategoryBadge category={t.category} />,
   },
   {
@@ -73,7 +73,7 @@ export function TicketTable({
   return (
     <div className="w-full rounded-2xl border border-slate-200/80 bg-white overflow-hidden shadow-xs">
       <div className="w-full overflow-x-auto">
-        <table className="w-full table-auto text-left text-sm">
+        <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200/80 bg-slate-50/80">
               {columns.map((col) => (

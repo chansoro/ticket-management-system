@@ -1,40 +1,49 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
-import { CheckCircle2, Play } from "lucide-react"
 import { AppShell } from "@/layouts/Sidebar"
 import { BackLink } from "@/layouts/PageHeader"
 import { Button } from "@/components/ui/Button"
-import { StatusBadge, PriorityBadge, CategoryBadge } from "@/components/ui/Badge"
-import { Label, Textarea } from "@/components/ui/Input"
+import { CategoryBadge, PriorityBadge, StatusBadge } from "@/components/ui/Badge"
 import { PageError, PageLoading } from "@/components/ui/PageState"
+import { Textarea } from "@/components/ui/Input"
 import { supabase } from "@/lib/supabase"
 import { formatDateTime, mapTicket, ticketSelect, type Ticket, type TicketActivity } from "@/lib/tickets"
-import { useAuth } from "@/contexts/AuthContext"
 
 export function DeveloperTicketDetail() {
   const { id } = useParams()
-  const { profile } = useAuth()
-  const [t, setT] = useState<Ticket | null>(null)
+  const [ticket, setTicket] = useState<Ticket | null>(null)
   const [activity, setActivity] = useState<TicketActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [saving, setSaving] = useState(false)
-
-  // Resolution Comment Modal state
   const [showResolveModal, setShowResolveModal] = useState(false)
   const [resolutionComment, setResolutionComment] = useState("")
+  const [saving, setSaving] = useState(false)
 
   async function load() {
-    const { data, error: e } = await supabase.from("tickets").select(ticketSelect).eq("id", id).maybeSingle()
-    if (e) setError(e.message)
-    else if (!data) setError("Ticket not found or no longer assigned to you.")
-    else {
-      const mapped = mapTicket(data as never)
-      setT(mapped)
-      setResolutionComment(mapped.resolution_comment ?? "")
-      const { data: a } = await supabase.from("ticket_activity").select("*").eq("ticket_id", id).order("created_at")
-      setActivity((a ?? []) as TicketActivity[])
+    setError("")
+    const { data, error: ticketError } = await supabase
+      .from("tickets")
+      .select(ticketSelect)
+      .eq("id", id)
+      .maybeSingle()
+
+    if (ticketError || !data) {
+      setError(ticketError?.message ?? "Ticket not found.")
+      setLoading(false)
+      return
     }
+
+    const nextTicket = mapTicket(data as never)
+    setTicket(nextTicket)
+    setResolutionComment(nextTicket.resolution_comment ?? "")
+
+    const { data: events } = await supabase
+      .from("ticket_activity")
+      .select("*")
+      .eq("ticket_id", id)
+      .order("created_at")
+
+    setActivity((events ?? []) as TicketActivity[])
     setLoading(false)
   }
 
@@ -42,37 +51,22 @@ export function DeveloperTicketDetail() {
     void load()
   }, [id])
 
-  async function status(value: "in_progress" | "resolved") {
-    if (value === "resolved") {
-      setShowResolveModal(true)
-      return
-    }
-    setSaving(true)
-    const { error: e } = await supabase.from("tickets").update({ status: value }).eq("id", id)
-    if (e) setError(e.message)
-    else {
-      await load()
-      window.dispatchEvent(new Event("notifications-updated"))
-    }
-    setSaving(false)
-  }
-
-  async function submitResolution(e: React.FormEvent) {
+  const confirmResolve = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!resolutionComment.trim()) return
     setSaving(true)
-    const { error: updateErr } = await supabase
+    const { error: updateError } = await supabase
       .from("tickets")
       .update({
         status: "resolved",
         resolution_comment: resolutionComment.trim(),
+        resolved_at: new Date().toISOString(),
       })
       .eq("id", id)
 
     setSaving(false)
-    if (updateErr) {
-      setError(updateErr.message)
-    } else {
+    if (updateError) setError(updateError.message)
+    else {
       setShowResolveModal(false)
       await load()
       window.dispatchEvent(new Event("notifications-updated"))
@@ -80,97 +74,135 @@ export function DeveloperTicketDetail() {
   }
 
   if (loading) return <AppShell role="developer"><PageLoading /></AppShell>
-  if (error || !t) return <AppShell role="developer"><PageError message={error || "Not found"} /></AppShell>
+  if (error || !ticket) return <AppShell role="developer"><PageError message={error || "Not found"} /></AppShell>
+
+  const timeline = activity.length > 0
+    ? activity.map((act) => ({
+        id: act.id,
+        label: act.activity_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        date: formatDateTime(act.created_at),
+        badge: "●",
+      }))
+    : [
+        { id: "1", label: `Ticket Submitted by \${ticket.requestor}`, date: formatDateTime(ticket.created_at), badge: "✓" },
+        ...(ticket.assignedTo
+          ? [{ id: "2", label: `Assigned to \${ticket.assignedTo}`, date: formatDateTime(ticket.updated_at), badge: "→" }]
+          : []),
+        ...(ticket.statusDb === "resolved"
+          ? [{ id: "3", label: "Ticket Resolved & Completed", date: formatDateTime(ticket.resolved_at ?? ticket.updated_at), badge: "★" }]
+          : []),
+      ]
 
   return (
     <AppShell role="developer">
-      <div className="max-w-5xl px-8 py-8">
+      <div className="space-y-6">
         <BackLink to="/developer/tickets" label="Back to My Tickets" />
-        <div className="mb-5 rounded-2xl border bg-white p-6">
-          <p className="font-mono text-xs">#{t.ticket_number}</p>
-          <div className="flex justify-between">
-            <h1 className="text-xl font-semibold">{t.subject}</h1>
-            <StatusBadge status={t.status} />
+
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-mono text-xs font-bold text-indigo-600">#{ticket.ticket_number}</span>
+              <CategoryBadge category={ticket.category} />
+              <PriorityBadge priority={ticket.priority} />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">{ticket.subject}</h1>
           </div>
+          <StatusBadge status={ticket.status} />
         </div>
-        <div className="grid grid-cols-3 gap-5">
-          <div className="col-span-2 space-y-5">
-            <div className="rounded-2xl border bg-white p-6">
-              <div className="space-y-3">
-                <p><CategoryBadge category={t.category} /></p>
-                <p><PriorityBadge priority={t.priority} /></p>
-                <p className="text-sm">Requestor: {t.requestor}</p>
-                <p className="border-t pt-4 text-sm">{t.description}</p>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Main Card with Scrollable Box */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Requestor</p>
+                  <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                    {ticket.requestor} <span className="font-normal text-slate-500">({ticket.requestorEmail})</span>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Submitted</p>
+                  <p className="mt-0.5 text-xs text-slate-600 font-medium">{formatDateTime(ticket.created_at)}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Detailed Issue Description</p>
+                <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  {ticket.description}
+                </div>
               </div>
             </div>
 
-            {t.resolution_comment && (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-6">
+            {ticket.resolution_comment && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-emerald-800">
-                    Resolution Note (Seen by Requestor)
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                    Resolution Note
                   </h2>
-                  {t.resolved_at && (
-                    <span className="text-xs text-emerald-700">{formatDateTime(t.resolved_at)}</span>
+                  {ticket.resolved_at && (
+                    <span className="text-xs text-emerald-700 font-medium">{formatDateTime(ticket.resolved_at)}</span>
                   )}
                 </div>
-                <p className="text-sm text-emerald-950 whitespace-pre-wrap">{t.resolution_comment}</p>
+                <p className="text-sm text-emerald-950 whitespace-pre-wrap leading-relaxed">{ticket.resolution_comment}</p>
               </div>
             )}
 
-            <div className="rounded-2xl border bg-white p-6">
-              <h2 className="mb-4 font-semibold">Activity</h2>
-              {activity.map((a) => (
-                <div key={a.id} className="mb-3 border-l-2 pl-4 text-sm">
-                  <p>{a.activity_type.replaceAll("_", " ")}</p>
-                  <p className="text-xs text-[#aeaeb2]">{formatDateTime(a.created_at)}</p>
-                </div>
-              ))}
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Ticket Lifecycle History</h2>
+              <div className="space-y-4 border-l-2 border-indigo-100 ml-2 pl-4">
+                {timeline.map((item) => (
+                  <div key={item.id} className="relative">
+                    <span className="absolute -left-[23px] top-0 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">
+                      {item.badge}
+                    </span>
+                    <p className="text-sm font-semibold text-slate-800">{item.label}</p>
+                    <p className="text-xs text-slate-400">{item.date}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          <div>
-            <div className="mb-4 rounded-2xl border bg-white p-5 text-sm">Assigned to {profile?.full_name}</div>
-            {t.statusDb === "open" && (
-              <Button className="w-full" disabled={saving} onClick={() => void status("in_progress")}>
-                <Play className="h-4 w-4" /> Start Progress
-              </Button>
-            )}
-            {t.statusDb === "in_progress" && (
-              <Button className="w-full" disabled={saving} onClick={() => void status("resolved")}>
-                <CheckCircle2 className="h-4 w-4" /> Mark as Resolved
-              </Button>
-            )}
-            {t.statusDb === "resolved" && (
-              <p className="rounded-2xl bg-emerald-50 p-4 text-center text-sm text-emerald-700">Ticket Resolved</p>
-            )}
+
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+              <h2 className="text-base font-bold text-slate-900">Workbench Action</h2>
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-3.5 text-xs text-indigo-900">
+                Assigned to: <strong>{ticket.assignedTo ?? "You"}</strong>
+              </div>
+              {ticket.statusDb !== "resolved" ? (
+                <Button className="w-full" onClick={() => setShowResolveModal(true)}>
+                  ✓ Mark as Resolved
+                </Button>
+              ) : (
+                <div className="text-center text-xs font-bold text-emerald-700 bg-emerald-50 py-2.5 rounded-xl border border-emerald-200">
+                  Ticket Completed & Closed
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {showResolveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form onSubmit={submitResolution} className="w-full max-w-lg rounded-2xl border border-[#e5e5ea] bg-white p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-semibold text-[#1d1d1f]">Resolve Ticket #{t.ticket_number}</h3>
-            <p className="text-xs text-[#6e6e73]">
-              Please enter a resolution comment explaining what was done. This comment will be visible to the Requestor ({t.requestor}).
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+          <form onSubmit={confirmResolve} className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-slate-900">Mark Ticket as Resolved</h3>
+            <p className="text-xs text-slate-500">
+              Provide resolution notes explaining the troubleshooting steps taken.
             </p>
-            <div className="space-y-1.5">
-              <Label htmlFor="dev-res-comment">Resolution / Comment</Label>
-              <Textarea
-                id="dev-res-comment"
-                rows={4}
-                placeholder="Describe the fix or resolution details..."
-                value={resolutionComment}
-                onChange={(e) => setResolutionComment(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => setShowResolveModal(false)}>
-                Cancel
-              </Button>
+            <Textarea
+              rows={4}
+              placeholder="e.g. Cleaned heatsink assembly, reapplied thermal paste, verified thermal profile."
+              value={resolutionComment}
+              onChange={(e) => setResolutionComment(e.target.value)}
+              required
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setShowResolveModal(false)}>Cancel</Button>
               <Button type="submit" disabled={saving || !resolutionComment.trim()}>
-                {saving ? "Resolving…" : "Submit & Mark Resolved"}
+                {saving ? "Saving..." : "Confirm Resolution"}
               </Button>
             </div>
           </form>
