@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 import { AppShell } from "@/layouts/Sidebar"
 import { BackLink } from "@/layouts/PageHeader"
@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase"
 import { formatDateTime, mapTicket, ticketSelect, type Ticket, type TicketActivity } from "@/lib/tickets"
 import { Check, ArrowRight, Star } from "lucide-react"
 
-export function TicketDetail() {
+export function RequestorTicketDetail() {
   const { id } = useParams()
   const [ticket, setTicket] = useState<Ticket | null>(null)
   const [activity, setActivity] = useState<TicketActivity[]>([])
