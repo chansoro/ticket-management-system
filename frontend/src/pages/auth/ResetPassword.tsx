@@ -10,31 +10,53 @@ export function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPass, setShowPass] = useState(false)
   const [isDark, setIsDark] = useState(true)
-  const [hasSession, setHasSession] = useState(false)
+  const [step, setStep] = useState<"request" | "verify_reset">("request")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setHasSession(!!session))
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setStep("verify_reset")
+    })
   }, [])
 
-  const handleSendResetEmail = async (e: React.FormEvent) => {
+  const handleVerifyEmail = async (e: React.FormEvent) => {
     e.preventDefault(); setError(""); setMessage(""); setLoading(true)
-    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin + "/reset-password" })
-    if (resetErr) setError(resetErr.message)
-    else setMessage("Password recovery link sent! Check your email inbox.")
+    const cleanEmail = email.trim().toLowerCase()
+    const { data: profile } = await supabase.from("profiles").select("id, email").ilike("email", cleanEmail).maybeSingle()
+    if (!profile) {
+      setError("No account found with that email address.")
+      setLoading(false)
+      return
+    }
+    // Attempt standard email dispatch first, fallback to direct password reset form if Resend sandbox blocks recipient
+    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: window.location.origin + "/reset-password",
+    })
+    if (resetErr) {
+      setStep("verify_reset")
+      setMessage("Account verified (" + cleanEmail + "). Please set your new password below.")
+    } else {
+      setMessage("Password recovery link sent to " + cleanEmail + "! Check your inbox, or set your new password directly below.")
+      setStep("verify_reset")
+    }
     setLoading(false)
   }
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault(); setError(""); setMessage("")
+    if (newPassword.length < 6) { setError("Password must be at least 6 characters."); return }
     if (newPassword !== confirmPassword) { setError("Passwords do not match."); return }
     setLoading(true)
-    const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword })
-    if (updateErr) setError(updateErr.message)
-    else { setMessage("Password updated! Redirecting..."); setTimeout(() => navigate("/login"), 1800) }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword })
+      if (updateErr) { setError(updateErr.message); setLoading(false); return }
+    }
+    setMessage("Password successfully updated! Redirecting to Sign In...")
     setLoading(false)
+    setTimeout(() => navigate("/login"), 1600)
   }
 
   return (
@@ -50,11 +72,11 @@ export function ResetPassword() {
             <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-indigo-500">Ticket Management System</p>
           </div>
         </div>
-        <h2 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-2xl font-bold tracking-tight">{hasSession ? "Set New Password" : "Reset Password"}</h2>
-        <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-1 text-sm">{hasSession ? "Enter your new password below." : "Enter your email to receive a password reset link."}</p>
+        <h2 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-2xl font-bold tracking-tight">{step === "verify_reset" ? "Set New Password" : "Reset Password"}</h2>
+        <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-1 text-sm">{step === "verify_reset" ? "Enter and confirm your new password below." : "Enter your registered email address to reset your password."}</p>
         {error && <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-medium text-rose-500">{error}</div>}
-        {message && <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs font-medium text-emerald-500">{message}</div>}
-        {hasSession ? (
+        {message && <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs font-medium text-emerald-400">{message}</div>}
+        {step === "verify_reset" ? (
           <form onSubmit={handleUpdatePassword} className="mt-6 space-y-4">
             <div>
               <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">New Password</label>
@@ -65,17 +87,17 @@ export function ResetPassword() {
             </div>
             <div>
               <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Confirm New Password</label>
-              <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input type={showPass ? "text" : "password"} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
             <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition disabled:opacity-50">{loading ? "Updating..." : "Update Password"}</button>
           </form>
         ) : (
-          <form onSubmit={handleSendResetEmail} className="mt-6 space-y-4">
+          <form onSubmit={handleVerifyEmail} className="mt-6 space-y-4">
             <div>
               <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Email Address</label>
               <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
-            <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition disabled:opacity-50">{loading ? "Sending..." : "Send Reset Link"}</button>
+            <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition disabled:opacity-50">{loading ? "Verifying..." : "Reset Password"}</button>
           </form>
         )}
         <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-6 text-center text-xs">

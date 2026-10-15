@@ -62,9 +62,19 @@ export function AdminReports() {
     rows.push([q("RESOLVR TICKET MANAGEMENT SYSTEM - OFFICIAL REPORT"), q(scopeLabel)].join(","))
     rows.push([q("Generated On"), q(new Date().toLocaleString())].join(","))
     rows.push("")
+    rows.push("SECTION 1: DEVELOPER RESOLUTION SUMMARY")
     rows.push([q("Developer Name"), q("Email Address"), q("Department"), q("Period"), q("Resolved"), q("Pending"), q("Total Assigned"), q("Resolution Rate")].join(","))
     devRows.forEach((d) => {
       rows.push([q(d.full_name), q(d.email), q(d.deptName), q(scopeLabel), q(d.resolved), q(d.pending), q(d.total), q(String(d.rate) + "%")].join(","))
+    })
+    rows.push("")
+    rows.push("SECTION 2: PER REQUESTOR TICKET BREAKDOWN")
+    rows.push([q("Requestor Name"), q("Email"), q("Ticket #"), q("Subject"), q("Priority"), q("Status"), q("Assigned Developer"), q("Resolution Comment"), q("Created Date")].join(","))
+    requestors.forEach((req) => {
+      const rTickets = filteredTickets.filter((t) => t.requestor_id === req.id)
+      rTickets.forEach((t) => {
+        rows.push([q(req.full_name), q(req.email), q("#" + t.ticket_number), q(t.subject), q(t.priority), q(t.status), q(t.assignedTo ?? "Unassigned"), q(t.resolution_comment ?? ""), q(t.created)].join(","))
+      })
     })
     const blob = new Blob(["\uFEFF" + rows.join("\r\n")], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
@@ -142,6 +152,79 @@ export function AdminReports() {
           <div className="mt-6 border-t border-slate-200 pt-3 flex items-center justify-between text-[11px] text-slate-400 font-mono">
             <span>Resolvr Ticket Management System — Official Audit Ledger</span>
             <span>Verified Operations Statement</span>
+          </div>
+        </div>
+
+        {/* SECTION 2: PER REQUESTOR TICKET BREAKDOWN */}
+        <div className="no-print rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Per Requestor Ticket Breakdown</h2>
+              <p className="text-xs text-slate-500">Complete ticket history and resolution notes grouped by requestor.</p>
+            </div>
+            <select
+              value={selectedRequestor}
+              onChange={(e) => setSelectedRequestor(e.target.value)}
+              className="w-full sm:w-72 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              <option value="all">All Requestors ({requestors.length})</option>
+              {requestors.map((r) => <option key={r.id} value={r.id}>{r.full_name} ({r.email})</option>)}
+            </select>
+          </div>
+          <div className="space-y-4">
+            {filteredRequestors.map((req) => {
+              const reqTickets = filteredTickets.filter((t) => t.requestor_id === req.id)
+              if (selectedRequestor === "all" && reqTickets.length === 0) return null
+              const resCount = reqTickets.filter((t) => t.statusDb === "resolved").length
+              const pendCount = reqTickets.filter((t) => t.statusDb !== "resolved").length
+              return (
+                <div key={req.id} className="rounded-xl border border-slate-200/80 p-5 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div>
+                      <h3 className="font-bold text-slate-900">{req.full_name}</h3>
+                      <p className="text-xs text-slate-500">{req.email}</p>
+                    </div>
+                    <div className="flex gap-2 text-xs font-bold">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">Total: {reqTickets.length}</span>
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Resolved: {resCount}</span>
+                      <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">Pending: {pendCount}</span>
+                    </div>
+                  </div>
+                  {reqTickets.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic">No tickets in this period.</p>
+                  ) : (
+                    <table className="w-full text-left text-xs table-fixed">
+                      <thead>
+                        <tr className="border-b border-slate-100 uppercase text-slate-400 font-bold">
+                          <th className="py-2 w-28">Ticket #</th>
+                          <th className="py-2 w-60">Subject</th>
+                          <th className="py-2 w-24">Priority</th>
+                          <th className="py-2 w-24">Status</th>
+                          <th className="py-2 w-44">Developer</th>
+                          <th className="py-2">Resolution Comment</th>
+                          <th className="py-2 w-28 text-right">Created</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {reqTickets.map((t) => (
+                          <tr key={t.id} className="hover:bg-slate-50/60">
+                            <td className="py-2.5 font-mono font-bold text-indigo-600 whitespace-nowrap truncate">
+                              <Link to={"/admin/tickets/" + t.id} className="hover:underline">#{t.ticket_number}</Link>
+                            </td>
+                            <td className="py-2.5 font-semibold text-slate-900 truncate pr-3">{t.subject}</td>
+                            <td className="py-2.5"><PriorityBadge priority={t.priority} /></td>
+                            <td className="py-2.5"><StatusBadge status={t.status} /></td>
+                            <td className="py-2.5 text-slate-700 font-medium truncate">{t.assignedTo ?? "Unassigned"}</td>
+                            <td className="py-2.5 text-slate-600 truncate pr-3">{t.resolution_comment ?? "—"}</td>
+                            <td className="py-2.5 text-slate-500 text-right whitespace-nowrap">{t.created}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>

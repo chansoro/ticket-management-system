@@ -50,7 +50,7 @@ export function DeveloperTicketDetail() {
   const timeline = activity.length > 0
     ? activity.map((act) => {
         const t = act.activity_type.toLowerCase()
-        const label = t === "created" ? "Ticket Submitted by " + ticket.requestor : t === "assigned" ? "Assigned to " + (ticket.assignedTo || "Developer") : t.includes("resolve") ? "Ticket Resolved & Completed" : act.activity_type.replace(/_/g, " ").toUpperCase()
+        const label = t === "created" ? "Ticket Submitted by " + ticket.requestor : t === "assigned" ? "Assigned to " + (ticket.assignedTo || "Developer") : t === "status_changed" ? "Status Changed to " + ticket.status : t.includes("resolve") ? "Ticket Resolved & Completed" : act.activity_type.replace(/_/g, " ")
         const icon = t.includes("resolve") ? Star : t.includes("assign") || t.includes("status") ? ArrowRight : Check
         return { id: act.id, label, date: formatDateTime(act.created_at), icon }
       })
@@ -62,11 +62,11 @@ export function DeveloperTicketDetail() {
 
   return (
     <AppShell role="developer">
-      <div className="space-y-6">
+      <div className="space-y-5">
         <BackLink to="/developer/tickets" label="Back to My Tickets" />
-        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-2 mb-1">
               <span className="font-mono text-xs font-bold text-indigo-600">#{ticket.ticket_number}</span>
               <CategoryBadge category={ticket.category} />
               <PriorityBadge priority={ticket.priority} />
@@ -75,10 +75,11 @@ export function DeveloperTicketDetail() {
           </div>
           <StatusBadge status={ticket.status} />
         </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-5">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Requestor</p>
                   <p className="mt-0.5 text-sm font-semibold text-slate-900">{ticket.requestor} <span className="font-normal text-slate-500">({ticket.requestorEmail})</span></p>
@@ -89,22 +90,14 @@ export function DeveloperTicketDetail() {
                 </div>
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Issue Description</p>
-                <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{ticket.description}</div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Issue Description</p>
+                <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 p-3.5 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{ticket.description}</div>
               </div>
             </div>
-            {ticket.resolution_comment && (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-xs">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800">Resolution Note</h2>
-                  {ticket.resolved_at && <span className="text-xs text-emerald-700 font-medium">{formatDateTime(ticket.resolved_at)}</span>}
-                </div>
-                <p className="text-sm text-emerald-950 whitespace-pre-wrap">{ticket.resolution_comment}</p>
-              </div>
-            )}
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Activity History</h2>
-              <div className="space-y-4 border-l-2 border-indigo-100 ml-3 pl-4">
+
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3.5">Activity History</h2>
+              <div className="space-y-3.5 border-l-2 border-indigo-100 ml-3 pl-4">
                 {timeline.map((item) => {
                   const Icon = item.icon
                   return (
@@ -120,16 +113,27 @@ export function DeveloperTicketDetail() {
               </div>
             </div>
           </div>
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs space-y-3.5">
               <h2 className="text-base font-bold text-slate-900">Workbench Action</h2>
-              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-3.5 text-xs text-indigo-900">Assigned to: <strong>{ticket.assignedTo ?? "You"}</strong></div>
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-3 text-xs text-indigo-900">Assigned to: <strong>{ticket.assignedTo ?? "You"}</strong></div>
               {ticket.statusDb !== "resolved" ? (
                 <Button className="w-full" onClick={() => setShowResolveModal(true)}>✓ Mark as Resolved</Button>
               ) : (
                 <div className="text-center text-xs font-bold text-emerald-700 bg-emerald-50 py-2.5 rounded-xl border border-emerald-200">Ticket Completed & Closed</div>
               )}
             </div>
+
+            {ticket.resolution_comment && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800">Resolution Note</h2>
+                  {ticket.resolved_at && <span className="text-[11px] text-emerald-700 font-medium">{formatDateTime(ticket.resolved_at)}</span>}
+                </div>
+                <p className="text-sm text-emerald-950 whitespace-pre-wrap leading-relaxed">{ticket.resolution_comment}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
