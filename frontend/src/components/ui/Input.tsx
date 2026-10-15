@@ -1,30 +1,34 @@
-﻿import React from 'react'
+﻿import React, { forwardRef } from 'react'
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
 }
 
-export function Input({ label, error, className = '', ...props }: InputProps) {
-  return (
-    <div className="space-y-1.5">
-      {label && (
-        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
-          {label}
-        </label>
-      )}
-      <input
-        className={`w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-xs transition focus:border-indigo-600 focus:outline-none focus:ring-3 focus:ring-indigo-500/15 disabled:bg-slate-100 ${error ? 'border-rose-500' : ''} ${className}`}
-        {...props}
-      />
-      {error && <p className="text-xs text-rose-600">{error}</p>}
-    </div>
-  )
-}
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ label, error, className = '', ...props }, ref) => {
+    return (
+      <div className="space-y-1.5 w-full">
+        {label && (
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+            {label}
+          </label>
+        )}
+        <input
+          ref={ref}
+          className={`w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-xs transition focus:border-indigo-600 focus:outline-none focus:ring-3 focus:ring-indigo-500/15 disabled:bg-slate-100 ${ error ? 'border-rose-500' : '' } ${className}`}
+          {...props}
+        />
+        {error && <p className="text-xs text-rose-600">{error}</p>}
+      </div>
+    )
+  }
+)
+Input.displayName = 'Input'
 
 export function SearchInput({ className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <div className={`relative flex items-center ${className}`}>
+    <div className={`relative flex items-center \${className}`}>
       <svg
         className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
         fill="none"
@@ -39,6 +43,52 @@ export function SearchInput({ className = '', ...props }: React.InputHTMLAttribu
         className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 shadow-xs transition focus:border-indigo-600 focus:outline-none focus:ring-3 focus:ring-indigo-500/15"
         {...props}
       />
+    </div>
+  )
+}
+
+export function Label({ className = '', children, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
+  return (
+    <label className={`block text-xs font-semibold uppercase tracking-wider text-slate-600 \${className}`} {...props}>
+      {children}
+    </label>
+  )
+}
+
+export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
+  ({ className = '', children, ...props }, ref) => {
+    return (
+      <select
+        ref={ref}
+        className={`w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-xs transition focus:border-indigo-600 focus:outline-none focus:ring-3 focus:ring-indigo-500/15 disabled:bg-slate-100 \${className}`}
+        {...props}
+      >
+        {children}
+      </select>
+    )
+  }
+)
+Select.displayName = 'Select'
+
+export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
+  ({ className = '', ...props }, ref) => {
+    return (
+      <textarea
+        ref={ref}
+        className={`w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-xs transition focus:border-indigo-600 focus:outline-none focus:ring-3 focus:ring-indigo-500/15 disabled:bg-slate-100 \${className}`}
+        {...props}
+      />
+    )
+  }
+)
+Textarea.displayName = 'Textarea'
+
+export function FormField({ label, error, children, className = '' }: { label?: string; error?: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`space-y-1.5 \${className}`}>
+      {label && <Label>{label}</Label>}
+      {children}
+      {error && <p className="text-xs text-rose-600">{error}</p>}
     </div>
   )
 }

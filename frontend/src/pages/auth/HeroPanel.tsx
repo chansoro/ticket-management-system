@@ -1,44 +1,34 @@
-interface HeroPanelProps {
-  headline: string
-  subtext: string
-}
+﻿import { ShieldCheck } from "lucide-react"
 
-export function HeroPanel({ headline, subtext }: HeroPanelProps) {
+export function HeroPanel() {
   return (
-    <div className="relative z-10 hidden flex-[58] flex-col justify-between overflow-hidden p-12 lg:flex">
-      <div className="absolute inset-0 bg-slate-950/15" />
-
-      {/* Label */}
-      <div className="relative z-10">
-        <span className="inline-flex items-center gap-2 text-white/60 text-xs font-semibold uppercase tracking-widest">
-          <div className="w-5 h-5 rounded-md bg-white/20 flex items-center justify-center">
-            <svg
-              className="w-3 h-3 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"
-              />
-            </svg>
-          </div>
-          IT Help Desk
-        </span>
+    <div className="relative flex flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 p-10 text-white">
+      <div className="relative z-10 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-md shadow-indigo-500/25">
+          <ShieldCheck className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-base font-extrabold tracking-tight text-white leading-none">Resolvr</p>
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-indigo-400">
+            Ticket Management System
+          </p>
+        </div>
       </div>
 
-      {/* Main content */}
-      <div className="relative z-10">
-        <h1 className="text-5xl font-semibold text-white leading-tight tracking-tight mb-4">
-          {headline}
+      <div className="relative z-10 my-auto max-w-md py-12">
+        <span className="inline-flex rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-semibold text-indigo-300 ring-1 ring-indigo-400/30">
+          Enterprise ITSM Platform
+        </span>
+        <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+          Automated Ticketing & Operations Hub
         </h1>
-        <p className="text-white/70 text-lg leading-relaxed max-w-sm">
-          {subtext}
+        <p className="mt-3 text-sm text-slate-300 leading-relaxed">
+          Submit service requests, auto-route tickets by technical department, track developer resolution capacity, and generate audit-ready reports.
         </p>
+      </div>
 
+      <div className="relative z-10 border-t border-slate-800/80 pt-6 text-xs text-slate-400">
+        © 2026 Resolvr ITSM. Authorized access only.
       </div>
     </div>
   )
