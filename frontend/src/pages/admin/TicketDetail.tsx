@@ -147,7 +147,7 @@ export function AdminTicketDetail() {
           <div className="space-y-5">
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs space-y-3.5">
               <h2 className="text-base font-bold text-slate-900">Developer Assignment</h2>
-              <p className="text-xs text-slate-500">Routed to specialists in this ticket's department queue.</p>
+              <p className="text-xs text-slate-500">Routed to specialists in this ticket&apos;s department queue.</p>
               <Select value={selected} onChange={(e) => setSelected(e.target.value)}>
                 <option value="">Unassigned</option>
                 {developers.map((dev) => <option key={dev.id} value={dev.id}>{dev.full_name}</option>)}

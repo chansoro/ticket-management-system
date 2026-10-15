@@ -57,7 +57,7 @@ export function Login() {
           </button>
         </form>
         <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-6 text-center text-xs">
-          Don't have an account? <Link to="/signup" className="font-semibold text-indigo-500 hover:underline">Create an Account</Link>
+          Don&apos;t have an account? <Link to="/signup" className="font-semibold text-indigo-500 hover:underline">Create an Account</Link>
         </p>
       </div>
     </div>

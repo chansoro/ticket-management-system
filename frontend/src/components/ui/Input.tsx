@@ -1,6 +1,10 @@
 import React from "react"
 import { Search } from "lucide-react"
 
+export function FieldGroup({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={"space-y-1.5 w-full " + className}>{children}</div>
+}
+
 export function Label({ children, className = "", ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label className={"block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 " + className} {...props}>
