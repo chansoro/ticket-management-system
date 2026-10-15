@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react"
+﻿import { useCallback, useEffect, useState, type ReactNode } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
 import {
   BarChart3,
@@ -6,7 +6,7 @@ import {
   CheckCircle2,
   Code2,
   House,
-  LifeBuoy,
+  ShieldCheck,
   ListTodo,
   LogOut,
   Plus,
@@ -104,7 +104,7 @@ export function Sidebar({ role, userName, unreadCount = 0 }: SidebarProps) {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const displayName = profile?.full_name ?? userName ?? "User"
-  const roleLabel = role[0].toUpperCase() + role.slice(1)
+  const roleLabel = role === "user" ? "Requestor" : role[0].toUpperCase() + role.slice(1)
   const initials = displayName
     .split(" ")
     .map((name) => name[0])
@@ -113,52 +113,60 @@ export function Sidebar({ role, userName, unreadCount = 0 }: SidebarProps) {
     .toUpperCase()
 
   return (
-    <aside className="flex h-full w-60 flex-shrink-0 flex-col border-r border-[#e5e5ea] bg-white">
-      <div className="border-b border-[#f0f0f2] px-5 pb-5 pt-6">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-[#0071e3]">
-            <LifeBuoy className="h-4 w-4 text-white" />
+    <aside className="flex h-full w-64 flex-shrink-0 flex-col border-r border-slate-800 bg-[#0f172a] text-slate-200 selection:bg-indigo-600">
+      <div className="border-b border-slate-800/80 px-5 pb-5 pt-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-md shadow-indigo-500/20">
+            <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold leading-tight text-[#1d1d1f]">IT Help Desk</p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-[#aeaeb2]">Support Portal</p>
+            <p className="text-base font-extrabold tracking-tight text-white leading-none">Resolvr</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-indigo-400">Ticket Management System</p>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          {role === 'admin' ? 'Administration' : role === 'developer' ? 'Developer Portal' : 'Requestor Portal'}
+        </p>
         {roleNavItems[role].map(({ label, to, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
-            end={to === `/\${role}`}
+            end={to === `/${role}`}
             className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all \${
+              `group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-blue-50 text-[#0071e3]"
-                  : "text-[#6e6e73] hover:bg-gray-50 hover:text-[#1d1d1f]"
+                  ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:bg-slate-800/75 hover:text-slate-100'
               }`
             }
           >
-            <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
-            <span className="flex-1">{label}</span>
-            {label === "Notifications" && unreadCount > 0 && (
-              <span className="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-semibold text-white">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
+            {({ isActive }) => (
+              <>
+                {isActive && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-white" />}
+                <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} strokeWidth={1.75} />
+                <span className="flex-1">{label}</span>
+                {label === "Notifications" && unreadCount > 0 && (
+                  <span className="min-w-5 rounded-full bg-indigo-500 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </>
             )}
           </NavLink>
         ))}
       </nav>
 
-      <div className="border-t border-[#f0f0f2] px-3 pb-4 pt-3">
-        <div className="group flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-gray-50">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-xs font-semibold text-white">
+      <div className="border-t border-slate-800/80 px-3 pb-4 pt-3">
+        <div className="flex items-center gap-3 rounded-xl bg-slate-800/60 px-3 py-2.5">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold text-indigo-300 ring-1 ring-indigo-400/30">
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-[#1d1d1f]">{displayName}</p>
-            <p className="truncate text-xs text-[#aeaeb2]">{roleLabel}</p>
+            <p className="truncate text-sm font-semibold text-white">{displayName}</p>
+            <p className="truncate text-xs capitalize text-slate-400">{roleLabel}</p>
           </div>
           <button
             type="button"
@@ -166,7 +174,7 @@ export function Sidebar({ role, userName, unreadCount = 0 }: SidebarProps) {
               await supabase.auth.signOut()
               navigate("/login", { replace: true })
             }}
-            className="text-[#aeaeb2] opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500"
+            className="text-slate-400 hover:text-rose-400 transition-colors"
             aria-label="Log out"
             title="Log out"
           >
@@ -186,26 +194,28 @@ export function AppShell({
   const { unreadCount, latest } = useUnreadNotifications()
 
   return (
-    <div className="flex h-screen bg-[#F5F5F7]">
+    <div className="flex h-screen bg-[#f8fafc] text-slate-900 overflow-hidden">
       <Sidebar {...sidebarProps} unreadCount={unreadCount} />
       <main className="flex-1 overflow-y-auto">
         {latest && (
-          <div className="flex items-center gap-3 border-b border-blue-100 bg-blue-50 px-8 py-3 text-sm text-blue-900">
-            <Bell className="h-4 w-4 flex-shrink-0" />
+          <div className="no-print flex items-center gap-3 border-b border-indigo-100 bg-indigo-50 px-8 py-3 text-sm text-indigo-900">
+            <Bell className="h-4 w-4 flex-shrink-0 text-indigo-600" />
             <div className="min-w-0 flex-1">
               <span className="font-semibold">{latest.title}</span>
-              <span className="ml-2 text-blue-700">{latest.body}</span>
+              <span className="ml-2 text-indigo-700">{latest.body}</span>
             </div>
             <button
               type="button"
-              className="font-medium text-[#0071e3] hover:underline"
-              onClick={() => navigate(`/\${sidebarProps.role}/notifications`)}
+              className="font-semibold text-indigo-600 hover:underline"
+              onClick={() => navigate(`/${sidebarProps.role}/notifications`)}
             >
               View notifications
             </button>
           </div>
         )}
-        {children}
+        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {children}
+        </div>
       </main>
     </div>
   )
