@@ -109,8 +109,8 @@ export function AdminReports() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
-    const safeName = scope === "year" ? `year_\${selectedYear}` : scope === "this_month" ? "this_month" : "overall"
-    link.download = `Resolvr_Report_\${safeName}.csv`
+    const safeName = scope === "year" ? `year_\' + selectedYear + '` : scope === "this_month" ? "this_month" : "overall"
+    link.download = `Resolvr_Report_\' + safeScopeName + '.csv`
     link.click()
     URL.revokeObjectURL(url)
   }

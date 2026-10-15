@@ -81,12 +81,12 @@ export function DeveloperTicketDetail() {
         id: act.id,
         label: act.activity_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
         date: formatDateTime(act.created_at),
-        badge: "●",
+        badge: "✓",
       }))
     : [
-        { id: "1", label: `Ticket Submitted by \${ticket.requestor}`, date: formatDateTime(ticket.created_at), badge: "✓" },
+        { id: "1", label: `Ticket Submitted by \' + ticket.requestor + '`, date: formatDateTime(ticket.created_at), badge: "✓" },
         ...(ticket.assignedTo
-          ? [{ id: "2", label: `Assigned to \${ticket.assignedTo}`, date: formatDateTime(ticket.updated_at), badge: "→" }]
+          ? [{ id: "2", label: `Assigned to \' + (ticket.assignedTo || 'Developer') + '`, date: formatDateTime(ticket.updated_at), badge: "→" }]
           : []),
         ...(ticket.statusDb === "resolved"
           ? [{ id: "3", label: "Ticket Resolved & Completed", date: formatDateTime(ticket.resolved_at ?? ticket.updated_at), badge: "★" }]

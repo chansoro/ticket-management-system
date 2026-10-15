@@ -182,9 +182,9 @@ export function AdminTicketDetail() {
         badge: "●",
       }))
     : [
-        { id: "1", label: `Ticket Submitted by \${ticket.requestor}`, date: formatDateTime(ticket.created_at), badge: "✓" },
+        { id: "1", label: `Ticket Submitted by \' + (ticket ? ticket.requestor : '') + '`, date: formatDateTime(ticket.created_at), badge: "✓" },
         ...(ticket.assignedTo
-          ? [{ id: "2", label: `Assigned to \${ticket.assignedTo}`, date: formatDateTime(ticket.updated_at), badge: "→" }]
+          ? [{ id: "2", label: `Assigned to \' + (ticket && ticket.assignedTo ? ticket.assignedTo : 'Developer') + '`, date: formatDateTime(ticket.updated_at), badge: "→" }]
           : []),
         ...(ticket.statusDb === "resolved"
           ? [{ id: "3", label: "Ticket Resolved & Verification Completed", date: formatDateTime(ticket.resolved_at ?? ticket.updated_at), badge: "★" }]
