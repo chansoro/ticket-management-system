@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { validateEmailAddress } from "@/lib/emailValidation"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
+import { ThemeToggle } from "@/components/ui/ThemeToggle"
 
 export function ResetPassword() {
   const navigate = useNavigate()
@@ -108,6 +109,7 @@ export function ResetPassword() {
   if (resetConfirmed) {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
         <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl text-center space-y-5">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">
             <CheckCircle2 className="h-7 w-7" />
@@ -127,6 +129,7 @@ export function ResetPassword() {
   if (recoveryMode) {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
         <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl space-y-6">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
@@ -209,6 +212,7 @@ export function ResetPassword() {
   if (sent) {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
         <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl text-center space-y-5">
           <div className="mx-auto flex items-center justify-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
@@ -280,6 +284,7 @@ export function ResetPassword() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+      <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
       <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl space-y-6">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
@@ -312,7 +317,7 @@ export function ResetPassword() {
             <Input
               required
               type="email"
-              placeholder="name@gmail.com"
+              placeholder="user@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

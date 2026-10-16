@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { validateEmailAddress } from "@/lib/emailValidation"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
+import { ThemeToggle } from "@/components/ui/ThemeToggle"
 import { homeForRole } from "@/components/RouteGuard"
 import type { UserRole } from "@/lib/tickets"
 
@@ -72,6 +73,7 @@ export function Login() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+      <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
       <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl space-y-6">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
@@ -107,7 +109,7 @@ export function Login() {
             <Input
               required
               type="email"
-              placeholder="name@gmail.com"
+              placeholder="user@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
