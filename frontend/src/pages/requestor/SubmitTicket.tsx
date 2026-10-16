@@ -1,26 +1,26 @@
-import React, { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { AppShell } from "@/layouts/Sidebar"
-import { PageHeader } from "@/layouts/PageHeader"
-import { Button } from "@/components/ui/Button"
-import { Input, Select, Textarea } from "@/components/ui/Input"
-import { PageError, PageLoading } from "@/components/ui/PageState"
-import { useAuth } from "@/contexts/AuthContext"
-import { useCategories, useDepartments } from "@/hooks/useData"
-import { supabase } from "@/lib/supabase"
-import type { TicketPriority } from "@/lib/tickets"
+﻿import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { AppShell } from '@/layouts/Sidebar'
+import { PageHeader } from '@/layouts/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { Input, Select, Textarea } from '@/components/ui/Input'
+import { PageError, PageLoading } from '@/components/ui/PageState'
+import { useAuth } from '@/contexts/AuthContext'
+import { useCategories, useDepartments } from '@/hooks/useData'
+import { supabase } from '@/lib/supabase'
+import type { TicketPriority } from '@/lib/tickets'
 
 export function SubmitTicket() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const { categories, loading: cLoading, error: cError } = useCategories()
   const { departments } = useDepartments()
-  const [subject, setSubject] = useState("")
-  const [categoryId, setCategoryId] = useState("")
-  const [priority, setPriority] = useState<TicketPriority>("medium")
-  const [description, setDescription] = useState("")
+  const [subject, setSubject] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+  const [priority, setPriority] = useState<TicketPriority>('medium')
+  const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useState('')
 
   if (cLoading) return <AppShell role="requestor"><PageLoading /></AppShell>
   if (cError) return <AppShell role="requestor"><PageError message={cError} /></AppShell>
@@ -28,36 +28,36 @@ export function SubmitTicket() {
   const activeCategories = categories.filter((c) => c.is_active)
   const deptMap = Object.fromEntries(departments.map((d) => [d.id, d.name]))
   const selectedCategory = activeCategories.find((c) => c.id === categoryId)
-  const routedDeptName = selectedCategory ? (deptMap[selectedCategory.department_id] ?? "Assigned Department Queue") : null
+  const routedDeptName = selectedCategory ? (deptMap[selectedCategory.department_id] ?? 'Assigned Department Queue') : null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!profile) return
-    if (!categoryId) { setError("Please select an issue category."); return }
+    if (!categoryId) { setError('Please select an issue category.'); return }
     setSubmitting(true)
-    setError("")
+    setError('')
 
     const { data: newTicket, error: insertError } = await supabase
-      .from("tickets")
+      .from('tickets')
       .insert({
         requestor_id: profile.id,
         category_id: categoryId,
         subject: subject.trim(),
         description: description.trim(),
         priority,
-        status: "open",
+        status: 'open',
       })
-      .select("id")
+      .select('id')
       .single()
 
     if (insertError || !newTicket) {
-      setError(insertError?.message ?? "Failed to submit ticket.")
+      setError(insertError?.message ?? 'Failed to submit ticket.')
       setSubmitting(false)
       return
     }
 
-    window.dispatchEvent(new Event("notifications-updated"))
-    navigate("/requestor/tickets/" + newTicket.id)
+    window.dispatchEvent(new Event('notifications-updated'))
+    navigate('/requestor/tickets/' + newTicket.id)
   }
 
   return (
@@ -124,11 +124,11 @@ export function SubmitTicket() {
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-            <Button type="button" variant="secondary" onClick={() => navigate("/requestor/tickets")}>
+            <Button type="button" variant="secondary" onClick={() => navigate('/requestor/tickets')}>
               Cancel
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Submitting Request..." : "Submit Request"}
+              {submitting ? 'Submitting Request...' : 'Submit Request'}
             </Button>
           </div>
         </form>
