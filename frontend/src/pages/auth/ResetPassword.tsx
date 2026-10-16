@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { Shield, MailCheck, Eye, EyeOff, CheckCircle2, RefreshCw, Edit3 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { validateEmailAddress } from "@/lib/emailValidation"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { ThemeToggle } from "@/components/ui/ThemeToggle"
 
 export function ResetPassword() {
   const navigate = useNavigate()
@@ -24,7 +24,6 @@ export function ResetPassword() {
   const [resetConfirmed, setResetConfirmed] = useState(false)
 
   useEffect(() => {
-    // Detect if user arrived via the Password Reset link in their email
     const hash = window.location.hash
     const queryType = searchParams.get("type")
     const hasCode = searchParams.get("code")
@@ -47,16 +46,18 @@ export function ResetPassword() {
     return () => subscription.unsubscribe()
   }, [searchParams])
 
-  async function handleSendResetEmail(e?: React.FormEvent) {
+  async function handleSendResetEmail(e?: FormEvent) {
     if (e) e.preventDefault()
     setError("")
     setInfoMessage("")
-    const cleanEmail = email.trim().toLowerCase()
-    if (!cleanEmail) {
-      setError("Please enter your email address.")
+
+    const emailError = validateEmailAddress(email)
+    if (emailError) {
+      setError(emailError)
       return
     }
 
+    const cleanEmail = email.trim().toLowerCase()
     setLoading(true)
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
       redirectTo: window.location.origin + "/reset-password?type=recovery",
@@ -69,10 +70,10 @@ export function ResetPassword() {
     }
 
     setSent(true)
-    setInfoMessage("Password reset link sent! Please check your inbox (and spam folder).")
+    setInfoMessage("Password reset link sent! Please check your inbox and spam folder.")
   }
 
-  async function handleUpdatePassword(e: React.FormEvent) {
+  async function handleUpdatePassword(e: FormEvent) {
     e.preventDefault()
     setError("")
     if (newPassword.length < 6) {
@@ -95,7 +96,6 @@ export function ResetPassword() {
       return
     }
 
-    // Sign out recovery session so user logs in cleanly on the Login page with their new password
     await supabase.auth.signOut()
     setLoading(false)
     setResetConfirmed(true)
@@ -105,11 +105,9 @@ export function ResetPassword() {
     }, 1800)
   }
 
-  // Step 6 & 7: Reset password confirmed -> redirect to login
   if (resetConfirmed) {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
-        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
         <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl text-center space-y-5">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">
             <CheckCircle2 className="h-7 w-7" />
@@ -126,11 +124,9 @@ export function ResetPassword() {
     )
   }
 
-  // Step 5: User clicked link in email -> Set New Password & Confirm Password
   if (recoveryMode) {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
-        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
         <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl space-y-6">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
@@ -210,11 +206,9 @@ export function ResetPassword() {
     )
   }
 
-  // Step 3: Prompt with email that says "Check your email" AND has an option to change email to send to
   if (sent) {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
-        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
         <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl text-center space-y-5">
           <div className="mx-auto flex items-center justify-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
@@ -233,7 +227,7 @@ export function ResetPassword() {
           <div className="space-y-2">
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Check your email</h1>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              We sent a password reset link to <strong className="text-slate-900 dark:text-white">{email}</strong>. Click the reset button in the email to set your new password.
+              We sent a password reset link to <strong className="text-slate-900 dark:text-white">{email.trim().toLowerCase()}</strong>. Click the reset button in the email to set your new password.
             </p>
           </div>
 
@@ -284,10 +278,8 @@ export function ResetPassword() {
     )
   }
 
-  // Step 2/3 Initial screen: Email pre-filled from Login (or user can edit/change email right here before sending)
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
-      <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
       <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl space-y-6">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
@@ -320,7 +312,7 @@ export function ResetPassword() {
             <Input
               required
               type="email"
-              placeholder="name@example.com"
+              placeholder="name@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

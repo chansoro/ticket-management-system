@@ -1,10 +1,10 @@
-import React, { useState } from "react"
+import { useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Shield, MailCheck, ArrowRight, RefreshCw } from "lucide-react"
+import { Shield, MailCheck, ArrowRight, RefreshCw, Eye, EyeOff } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { validateEmailAddress } from "@/lib/emailValidation"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { ThemeToggle } from "@/components/ui/ThemeToggle"
 
 export function Signup() {
   const navigate = useNavigate()
@@ -12,19 +12,34 @@ export function Signup() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [resendMessage, setResendMessage] = useState("")
   const [error, setError] = useState("")
   const [submitted, setSubmitted] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError("")
+
+    if (fullName.trim().length < 2) {
+      setError("Please enter your full name.")
+      return
+    }
+
+    const emailError = validateEmailAddress(email)
+    if (emailError) {
+      setError(emailError)
+      return
+    }
+
     if (password.length < 6) {
       setError("Password must be at least 6 characters.")
       return
     }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match.")
       return
@@ -48,14 +63,12 @@ export function Signup() {
       return
     }
 
-    // Supabase returns an empty identities array if the email is already registered
     if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
       setError("An account with this email already exists. Please sign in or reset your password.")
       setLoading(false)
       return
     }
 
-    // If Supabase had auto-session, sign out so user follows the email confirmation -> login flow
     if (data?.session) {
       await supabase.auth.signOut()
     }
@@ -86,7 +99,6 @@ export function Signup() {
   if (submitted) {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
-        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
         <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl text-center space-y-5">
           <div className="mx-auto flex items-center justify-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
@@ -105,7 +117,7 @@ export function Signup() {
           <div className="space-y-2">
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Check your email</h1>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              We sent a confirmation link to <strong className="text-slate-900 dark:text-white">{email}</strong>. Click the verification link in your inbox to activate your account, then sign in below.
+              We sent a confirmation link to <strong className="text-slate-900 dark:text-white">{email.trim().toLowerCase()}</strong>. Click the verification button in your email to confirm your account, then sign in with your credentials.
             </p>
           </div>
 
@@ -143,7 +155,6 @@ export function Signup() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
-      <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
       <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl space-y-6">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
@@ -157,7 +168,7 @@ export function Signup() {
 
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Create an Account</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Register to submit and track IT support requests.</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Register with a valid email to submit and track IT support requests.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -182,7 +193,7 @@ export function Signup() {
             <Input
               required
               type="email"
-              placeholder="name@example.com"
+              placeholder="name@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -190,24 +201,42 @@ export function Signup() {
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Password</label>
-            <Input
-              required
-              type="password"
-              placeholder="At least 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                required
+                type={showPassword ? "text" : "password"}
+                placeholder="At least 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Confirm Password</label>
-            <Input
-              required
-              type="password"
-              placeholder="Re-enter your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                required
+                type={showConfirm ? "text" : "password"}
+                placeholder="Re-enter your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           <Button type="submit" disabled={loading} className="w-full justify-center py-2.5">
