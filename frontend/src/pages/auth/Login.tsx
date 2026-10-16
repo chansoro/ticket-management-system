@@ -1,160 +1,51 @@
-import { useEffect, useState, type FormEvent } from "react"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
-import { Shield, Eye, EyeOff, CheckCircle2 } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
-import { validateEmailAddress } from "@/lib/emailValidation"
-import { Button } from "@/components/ui/Button"
-import { Input } from "@/components/ui/Input"
-import { ThemeToggle } from "@/components/ui/ThemeToggle"
-import { homeForRole } from "@/components/RouteGuard"
-import type { UserRole } from "@/lib/tickets"
+import { ShieldCheck, Eye, EyeOff, Sun, Moon } from "lucide-react"
 
 export function Login() {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [showPass, setShowPass] = useState(false)
+  const [isDark, setIsDark] = useState(() => localStorage.getItem("resolvr_theme") === "dark")
   const [error, setError] = useState("")
-  const [banner, setBanner] = useState("")
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const isVerified = searchParams.get("verified") === "true"
-    const isReset = searchParams.get("reset") === "success"
-    const hasHashToken = window.location.hash.includes("access_token") || window.location.hash.includes("type=signup")
+    const saved = localStorage.getItem("resolvr_theme") === "dark"
+    setIsDark(saved)
+  }, [])
 
-    if (isVerified || hasHashToken) {
-      setTimeout(async () => {
-        await supabase.auth.signOut()
-      }, 300)
-      setBanner("Email verified successfully! Please sign in with your credentials below.")
-    } else if (isReset) {
-      setBanner("Password reset confirmed! Please sign in with your new password.")
-    }
-  }, [searchParams])
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setError("")
-    setBanner("")
-
-    const emailError = validateEmailAddress(email)
-    if (emailError) {
-      setError(emailError)
-      return
-    }
-
-    setLoading(true)
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    })
-
-    if (signInError || !data.user) {
-      setError(signInError?.message ?? "Invalid login credentials.")
-      setLoading(false)
-      return
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", data.user.id)
-      .maybeSingle()
-
-    const userRole = (profile?.role as UserRole) ?? "user"
-    navigate(homeForRole(userRole), { replace: true })
+  const toggleTheme = () => {
+    const next = !isDark
+    setIsDark(next)
+    localStorage.setItem("resolvr_theme", next ? "dark" : "light")
   }
 
-  const forgotPasswordUrl = email.trim()
-    ? "/reset-password?email=" + encodeURIComponent(email.trim())
-    : "/reset-password"
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+    if (signInError) { setError(signInError.message); setLoading(false) }
+  }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
-      <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
-      <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
-            <Shield className="h-6 w-6" />
-          </div>
+    <div style={{ backgroundColor: isDark ? "#020617" : "#f1f5f9", color: isDark ? "#ffffff" : "#0f172a" }} className="flex min-h-screen items-center justify-center px-4 py-12 relative transition-colors">
+      <button type="button" onClick={toggleTheme} style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#cbd5e1", color: isDark ? "#fbbf24" : "#334155" }} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm cursor-pointer">
+        {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </button>
+      <div style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#e2e8f0" }} className="w-full max-w-md rounded-3xl border p-8 sm:p-10 shadow-2xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg"><ShieldCheck className="h-6 w-6" /></div>
           <div>
-            <div className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">Resolvr</div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mt-1">Ticket Management System</div>
+            <h1 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-xl font-black tracking-tight leading-none">Resolvr</h1>
+            <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-indigo-500">Ticket Management System</p>
           </div>
         </div>
-
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Welcome Back</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Sign in with your credentials to access your portal.</p>
-        </div>
-
-        {banner && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>{banner}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-500">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Email Address</label>
-            <Input
-              required
-              type="email"
-              placeholder="Email Address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Password</label>
-              <Link
-                to={forgotPasswordUrl}
-                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <div className="relative">
-              <Input
-                required
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-
-          <Button type="submit" disabled={loading} className="w-full justify-center py-2.5">
-            {loading ? "Signing In..." : "Sign In"}
-          </Button>
-        </form>
-
-        <p className="text-center text-xs text-slate-600 dark:text-slate-400">
-          Don't have an account?{" "}
-          <Link to="/signup" className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
-            Create an Account
-          </Link>
-        </p>
+        {error && <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-medium text-rose-500">{error}</div>}
+        \n        <form onSubmit={handleEmailLogin} className=\"mt-6 space-y-4\">\n          <div>\n            <label style={{ color: isDark ? \"#cbd5e1\" : \"#334155\" }} className=\"block text-xs font-bold uppercase tracking-wider mb-1.5\">Email Address</label>\n            <input type=\"email\" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ backgroundColor: isDark ? \"#1e293b\" : \"#f8fafc\", color: isDark ? \"#ffffff\" : \"#0f172a\", borderColor: isDark ? \"#334155\" : \"#cbd5e1\" }} className=\"w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500\" placeholder=\"Email Address\" />\n          </div>\n          <div>\n            <div className=\"flex items-center justify-between mb-1.5\">\n              <label style={{ color: isDark ? \"#cbd5e1\" : \"#334155\" }} className=\"block text-xs font-bold uppercase tracking-wider\">Password</label>\n              <Link to=\"/reset-password\" className=\"text-xs font-semibold text-indigo-500 hover:underline\">Forgot password?</Link>\n            </div>\n            <div className=\"relative\">\n              <input type={showPass ? \"text\" : \"password\"} required value={password} onChange={(e) => setPassword(e.target.value)} style={{ backgroundColor: isDark ? \"#1e293b\" : \"#f8fafc\", color: isDark ? \"#ffffff\" : \"#0f172a\", borderColor: isDark ? \"#334155\" : \"#cbd5e1\" }} className=\"w-full rounded-xl border px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500\" placeholder=\"Password\" />\n              <button type=\"button\" onClick={() => setShowPass(!showPass)} style={{ color: isDark ? \"#94a3b8\" : \"#64748b\" }} className=\"absolute right-3 top-1/2 -translate-y-1/2 p-1\">\n                {showPass ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}\n              </button>\n            </div>\n          </div>\n          <button type=\"submit\" disabled={loading} className=\"w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition disabled:opacity-50 cursor-pointer\">\n            {loading ? \"Signing in...\" : \"Sign In\"}\n          </button>\n        </form>\n        <p style={{ color: isDark ? \"#94a3b8\" : \"#64748b\" }} className=\"mt-6 text-center text-xs\">\n          Don&apos;t have an account? <Link to=\"/signup\" className=\"font-semibold text-indigo-500 hover:underline\">Create an Account</Link>\n        </p>
       </div>
     </div>
-  )
+  ()
 }
