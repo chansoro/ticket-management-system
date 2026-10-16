@@ -1,110 +1,341 @@
-import React, { useState, useEffect } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import React, { useEffect, useState } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { Shield, MailCheck, Eye, EyeOff, CheckCircle2, RefreshCw, Edit3 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { ShieldCheck, Eye, EyeOff, Sun, Moon } from "lucide-react"
+import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
+import { ThemeToggle } from "@/components/ui/ThemeToggle"
 
 export function ResetPassword() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState("")
+  const [searchParams] = useSearchParams()
+  const initialEmail = searchParams.get("email") ?? ""
+
+  const [email, setEmail] = useState(initialEmail)
+  const [sent, setSent] = useState(false)
+  const [recoveryMode, setRecoveryMode] = useState(false)
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [showPass, setShowPass] = useState(false)
-  const [isDark, setIsDark] = useState(() => localStorage.getItem("resolvr_theme") !== "light")
-  const [hasRecoverySession, setHasRecoverySession] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState("")
   const [error, setError] = useState("")
-
-  const toggleTheme = () => {
-    const next = !isDark
-    setIsDark(next)
-    localStorage.setItem("resolvr_theme", next ? "dark" : "light")
-  }
+  const [infoMessage, setInfoMessage] = useState("")
+  const [resetConfirmed, setResetConfirmed] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setHasRecoverySession(true)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || session) setHasRecoverySession(true)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
+    // Detect if user arrived via the Password Reset link in their email
+    const hash = window.location.hash
+    const queryType = searchParams.get("type")
+    const hasCode = searchParams.get("code")
 
-  const handleSendResetEmail = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(""); setMessage(""); setLoading(true)
-    const cleanEmail = email.trim()
-    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-      redirectTo: window.location.origin + "/reset-password",
-    })
-    if (resetErr) {
-      setError(resetErr.message)
-    } else {
-      setMessage("Password reset link sent to " + cleanEmail + "! Check your email inbox and click the link to set your new password.")
+    if (
+      hash.includes("type=recovery") ||
+      hash.includes("access_token") ||
+      queryType === "recovery" ||
+      Boolean(hasCode)
+    ) {
+      setRecoveryMode(true)
     }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setRecoveryMode(true)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [searchParams])
+
+  async function handleSendResetEmail(e?: React.FormEvent) {
+    if (e) e.preventDefault()
+    setError("")
+    setInfoMessage("")
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail) {
+      setError("Please enter your email address.")
+      return
+    }
+
+    setLoading(true)
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: window.location.origin + "/reset-password?type=recovery",
+    })
     setLoading(false)
+
+    if (resetError) {
+      setError(resetError.message)
+      return
+    }
+
+    setSent(true)
+    setInfoMessage("Password reset link sent! Please check your inbox (and spam folder).")
   }
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(""); setMessage("")
-    if (newPassword.length < 6) { setError("Password must be at least 6 characters."); return }
-    if (newPassword !== confirmPassword) { setError("Passwords do not match."); return }
+  async function handleUpdatePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setError("")
+    if (newPassword.length < 6) {
+      setError("New password must be at least 6 characters.")
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.")
+      return
+    }
+
     setLoading(true)
-    const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword })
+    const { error: updateErr } = await supabase.auth.updateUser({
+      password: newPassword,
+    })
+
     if (updateErr) {
       setError(updateErr.message)
       setLoading(false)
       return
     }
+
+    // Sign out recovery session so user logs in cleanly on the Login page with their new password
     await supabase.auth.signOut()
-    setMessage("Password updated successfully! Redirecting to Sign In...")
     setLoading(false)
-    setTimeout(() => navigate("/login"), 1600)
+    setResetConfirmed(true)
+
+    setTimeout(() => {
+      navigate("/login?reset=success", { replace: true })
+    }, 1800)
   }
 
-  return (
-    <div style={{ backgroundColor: isDark ? "#020617" : "#f1f5f9", color: isDark ? "#ffffff" : "#0f172a" }} className="flex min-h-screen items-center justify-center px-4 py-12 relative transition-colors">
-      <button type="button" onClick={toggleTheme} style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#cbd5e1", color: isDark ? "#fbbf24" : "#334155" }} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm cursor-pointer">
-        {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
-      <div style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#e2e8f0" }} className="w-full max-w-md rounded-3xl border p-8 sm:p-10 shadow-2xl">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg"><ShieldCheck className="h-6 w-6" /></div>
-          <div>
-            <h1 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-xl font-black tracking-tight leading-none">Resolvr</h1>
-            <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-indigo-500">Ticket Management System</p>
+  // Step 6 & 7: Reset password confirmed -> redirect to login
+  if (resetConfirmed) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
+        <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl text-center space-y-5">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">
+            <CheckCircle2 className="h-7 w-7" />
           </div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Password Reset Confirmed!</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Your password has been updated successfully. Redirecting you to Sign In...
+          </p>
+          <Button className="w-full justify-center py-2.5" onClick={() => navigate("/login?reset=success", { replace: true })}>
+            Go to Sign In Now
+          </Button>
         </div>
-        <h2 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-2xl font-bold tracking-tight">{hasRecoverySession ? "Set New Password" : "Reset Password"}</h2>
-        <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-1 text-sm">{hasRecoverySession ? "Enter and confirm your new password below." : "Enter your email address to receive a password reset link."}</p>
-        {error && <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-medium text-rose-500">{error}</div>}
-        {message && <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs font-medium text-emerald-400">{message}</div>}
-        {hasRecoverySession ? (
-          <form onSubmit={handleUpdatePassword} className="mt-6 space-y-4">
+      </div>
+    )
+  }
+
+  // Step 5: User clicked link in email -> Set New Password & Confirm Password
+  if (recoveryMode) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
+        <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
+              <Shield className="h-6 w-6" />
+            </div>
             <div>
-              <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">New Password</label>
+              <div className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">Resolvr</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mt-1">Ticket Management System</div>
+            </div>
+          </div>
+
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Set New Password</h1>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Enter and confirm your new password below.</p>
+          </div>
+
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            {error && (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-500">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">New Password</label>
               <div className="relative">
-                <input type={showPass ? "text" : "password"} required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                <button type="button" onClick={() => setShowPass(!showPass)} style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="absolute right-3 top-1/2 -translate-y-1/2 p-1">{showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                <Input
+                  required
+                  type={showNew ? "text" : "password"}
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
+
             <div>
-              <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Confirm New Password</label>
-              <input type={showPass ? "text" : "password"} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Confirm New Password</label>
+              <div className="relative">
+                <Input
+                  required
+                  type={showConfirm ? "text" : "password"}
+                  placeholder="Re-enter new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
-            <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition disabled:opacity-50">{loading ? "Updating..." : "Update Password"}</button>
+
+            <Button type="submit" disabled={loading} className="w-full justify-center py-2.5">
+              {loading ? "Updating Password..." : "Update Password"}
+            </Button>
           </form>
-        ) : (
-          <form onSubmit={handleSendResetEmail} className="mt-6 space-y-4">
-            <div>
-              <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Email Address</label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+
+          <p className="text-center text-xs text-slate-600 dark:text-slate-400">
+            Remembered your password?{" "}
+            <Link to="/login" className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+              Back to Sign In
+            </Link>
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Step 3: Prompt with email that says "Check your email" AND has an option to change email to send to
+  if (sent) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
+        <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl text-center space-y-5">
+          <div className="mx-auto flex items-center justify-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
+              <Shield className="h-5 w-5" />
             </div>
-            <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition disabled:opacity-50">{loading ? "Sending..." : "Send Reset Link"}</button>
-          </form>
-        )}
-        <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-6 text-center text-xs">
-          Remembered your password? <Link to="/login" className="font-semibold text-indigo-500 hover:underline">Back to Sign In</Link>
+            <div className="text-left">
+              <div className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">Resolvr</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mt-0.5">Ticket Management System</div>
+            </div>
+          </div>
+
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500 ring-1 ring-indigo-500/20">
+            <MailCheck className="h-7 w-7" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Check your email</h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              We sent a password reset link to <strong className="text-slate-900 dark:text-white">{email}</strong>. Click the reset button in the email to set your new password.
+            </p>
+          </div>
+
+          {error && (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-xs font-semibold text-rose-500">
+              {error}
+            </div>
+          )}
+
+          {infoMessage && (
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-500">
+              {infoMessage}
+            </div>
+          )}
+
+          <div className="space-y-2.5 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full justify-center py-2.5"
+              onClick={() => {
+                setSent(false)
+                setInfoMessage("")
+                setError("")
+              }}
+            >
+              <Edit3 className="mr-1.5 h-4 w-4" /> Change Email Address
+            </Button>
+
+            <Button
+              type="button"
+              disabled={loading}
+              className="w-full justify-center py-2.5"
+              onClick={() => handleSendResetEmail()}
+            >
+              <RefreshCw className={"mr-1.5 h-4 w-4 " + (loading ? "animate-spin" : "")} />
+              {loading ? "Resending..." : "Resend Reset Email"}
+            </Button>
+          </div>
+
+          <p className="text-center text-xs text-slate-600 dark:text-slate-400 pt-2">
+            <Link to="/login" className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+              Back to Sign In
+            </Link>
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Step 2/3 Initial screen: Email pre-filled from Login (or user can edit/change email right here before sending)
+  return (
+    <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+      <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
+      <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
+            <Shield className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">Resolvr</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mt-1">Ticket Management System</div>
+          </div>
+        </div>
+
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Reset Your Password</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Confirm or change the email address below and we'll send you a password reset link.
+          </p>
+        </div>
+
+        <form onSubmit={handleSendResetEmail} className="space-y-4">
+          {error && (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-500">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+              Email Address to Send Reset Link
+            </label>
+            <Input
+              required
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full justify-center py-2.5">
+            {loading ? "Sending Reset Link..." : "Send Reset Link"}
+          </Button>
+        </form>
+
+        <p className="text-center text-xs text-slate-600 dark:text-slate-400">
+          Remembered your password?{" "}
+          <Link to="/login" className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+            Back to Sign In
+          </Link>
         </p>
       </div>
     </div>

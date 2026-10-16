@@ -1,118 +1,226 @@
 import React, { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { Shield, MailCheck, ArrowRight, RefreshCw } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { ShieldCheck, Eye, EyeOff, Sun, Moon, MailCheck } from "lucide-react"
+import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
+import { ThemeToggle } from "@/components/ui/ThemeToggle"
 
 export function Signup() {
+  const navigate = useNavigate()
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [showPass, setShowPass] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
-  const [isDark, setIsDark] = useState(() => localStorage.getItem("resolvr_theme") !== "light")
-  const [error, setError] = useState("")
-  const [submittedEmail, setSubmittedEmail] = useState("")
   const [loading, setLoading] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendMessage, setResendMessage] = useState("")
+  const [error, setError] = useState("")
+  const [submitted, setSubmitted] = useState(false)
 
-  const toggleTheme = () => {
-    const next = !isDark
-    setIsDark(next)
-    localStorage.setItem("resolvr_theme", next ? "dark" : "light")
-  }
-
-  const handleSignup = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
-    if (password.length < 6) { setError("Password must be at least 6 characters."); return }
-    if (password !== confirmPassword) { setError("Passwords do not match."); return }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.")
+      return
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.")
+      return
+    }
+
     setLoading(true)
-    const cleanEmail = email.trim()
-    const { data, error: signUpErr } = await supabase.auth.signUp({
+    const cleanEmail = email.trim().toLowerCase()
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email: cleanEmail,
       password,
       options: {
-        data: { full_name: fullName.trim() },
-        emailRedirectTo: window.location.origin + "/login",
+        data: { full_name: fullName.trim(), role: "user" },
+        emailRedirectTo: window.location.origin + "/login?verified=true",
       },
     })
-    if (signUpErr) {
-      setError(signUpErr.message)
+
+    if (signUpError) {
+      setError(signUpError.message)
       setLoading(false)
       return
     }
-    // Prevent immediate dashboard redirect if Supabase auto-creates a session
+
+    // Supabase returns an empty identities array if the email is already registered
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setError("An account with this email already exists. Please sign in or reset your password.")
+      setLoading(false)
+      return
+    }
+
+    // If Supabase had auto-session, sign out so user follows the email confirmation -> login flow
     if (data?.session) {
       await supabase.auth.signOut()
     }
-    setSubmittedEmail(cleanEmail)
+
     setLoading(false)
+    setSubmitted(true)
+  }
+
+  async function handleResend() {
+    setResending(true)
+    setResendMessage("")
+    setError("")
+    const { error: resendErr } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim().toLowerCase(),
+      options: {
+        emailRedirectTo: window.location.origin + "/login?verified=true",
+      },
+    })
+    setResending(false)
+    if (resendErr) {
+      setError(resendErr.message)
+    } else {
+      setResendMessage("Verification email resent! Please check your inbox and spam folder.")
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+        <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
+        <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl text-center space-y-5">
+          <div className="mx-auto flex items-center justify-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
+              <Shield className="h-5 w-5" />
+            </div>
+            <div className="text-left">
+              <div className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">Resolvr</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mt-0.5">Ticket Management System</div>
+            </div>
+          </div>
+
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">
+            <MailCheck className="h-7 w-7" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Check your email</h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              We sent a confirmation link to <strong className="text-slate-900 dark:text-white">{email}</strong>. Click the verification link in your inbox to activate your account, then sign in below.
+            </p>
+          </div>
+
+          {error && (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-xs font-semibold text-rose-500">
+              {error}
+            </div>
+          )}
+
+          {resendMessage && (
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-500">
+              {resendMessage}
+            </div>
+          )}
+
+          <div className="space-y-2.5 pt-2">
+            <Button className="w-full justify-center py-2.5" onClick={() => navigate("/login")}>
+              Proceed to Sign In <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Button>
+
+            <button
+              type="button"
+              disabled={resending}
+              onClick={handleResend}
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50"
+            >
+              <RefreshCw className={"h-3.5 w-3.5 " + (resending ? "animate-spin" : "")} />
+              {resending ? "Sending..." : "Didn't receive the email? Resend confirmation"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div style={{ backgroundColor: isDark ? "#020617" : "#f1f5f9", color: isDark ? "#ffffff" : "#0f172a" }} className="flex min-h-screen items-center justify-center px-4 py-12 relative transition-colors">
-      <button type="button" onClick={toggleTheme} style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#cbd5e1", color: isDark ? "#fbbf24" : "#334155" }} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm cursor-pointer">
-        {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
-      <div style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#e2e8f0" }} className="w-full max-w-md rounded-3xl border p-8 sm:p-10 shadow-2xl">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg"><ShieldCheck className="h-6 w-6" /></div>
+    <div className="relative flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
+      <div className="fixed top-5 right-5 z-30"><ThemeToggle /></div>
+      <div className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
+            <Shield className="h-6 w-6" />
+          </div>
           <div>
-            <h1 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-xl font-black tracking-tight leading-none">Resolvr</h1>
-            <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-indigo-500">Ticket Management System</p>
+            <div className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">Resolvr</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mt-1">Ticket Management System</div>
           </div>
         </div>
 
-        {submittedEmail ? (
-          <div className="text-center py-4 space-y-4">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              <MailCheck className="h-7 w-7" />
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Create an Account</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Register to submit and track IT support requests.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-500">
+              {error}
             </div>
-            <h2 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-2xl font-bold tracking-tight">Check your email</h2>
-            <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="text-sm leading-relaxed">
-              We sent a confirmation link to <strong style={{ color: isDark ? "#ffffff" : "#0f172a" }}>{submittedEmail}</strong>. Click the verification link in your inbox to activate your account, then sign in below.
-            </p>
-            <Link to="/login" className="mt-4 block w-full rounded-xl bg-indigo-600 py-3 text-center text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition">
-              Proceed to Sign In
-            </Link>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Full Name</label>
+            <Input
+              required
+              placeholder="e.g., Christine Anne Rodas"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
           </div>
-        ) : (
-          <>
-            <h2 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-2xl font-bold tracking-tight">Create an account</h2>
-            <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-1 text-sm">Submit and track IT service requests with departmental triage.</p>
-            {error && <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-medium text-rose-500">{error}</div>}
-            <form onSubmit={handleSignup} className="mt-6 space-y-4">
-              <div>
-                <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Full Name</label>
-                <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              </div>
-              <div>
-                <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Email Address</label>
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              </div>
-              <div>
-                <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Password</label>
-                <div className="relative">
-                  <input type={showPass ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                  <button type="button" onClick={() => setShowPass(!showPass)} style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="absolute right-3 top-1/2 -translate-y-1/2 p-1">{showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-                </div>
-              </div>
-              <div>
-                <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Confirm Password</label>
-                <div className="relative">
-                  <input type={showConfirm ? "text" : "password"} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="absolute right-3 top-1/2 -translate-y-1/2 p-1">{showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-                </div>
-              </div>
-              <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition disabled:opacity-50">
-                {loading ? "Creating account..." : "Create Account"}
-              </button>
-            </form>
-            <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-6 text-center text-xs">
-              Already have an account? <Link to="/login" className="font-semibold text-indigo-500 hover:underline">Sign In</Link>
-            </p>
-          </>
-        )}
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Email Address</label>
+            <Input
+              required
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Password</label>
+            <Input
+              required
+              type="password"
+              placeholder="At least 6 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Confirm Password</label>
+            <Input
+              required
+              type="password"
+              placeholder="Re-enter your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full justify-center py-2.5">
+            {loading ? "Creating Account..." : "Create Account"}
+          </Button>
+        </form>
+
+        <p className="text-center text-xs text-slate-600 dark:text-slate-400">
+          Already have an account?{" "}
+          <Link to="/login" className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+            Sign In
+          </Link>
+        </p>
       </div>
     </div>
   )
