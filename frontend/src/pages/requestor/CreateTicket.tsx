@@ -36,7 +36,7 @@ export function CreateTicket() {
     setErr("")
 
     const { data: ticketNumData } = await supabase.rpc("generate_ticket_number")
-    const generatedNumber = (ticketNumData as string) ?? `\${Math.floor(1000 + Math.random() * 9000)}`
+    const generatedNumber = (ticketNumData as string) ?? `${Math.floor(1000 + Math.random() * 9000)}`
 
     const { data: newTicket, error: insertError } = await supabase
       .from("tickets")
@@ -57,7 +57,7 @@ export function CreateTicket() {
       setSubmitting(false)
     } else {
       window.dispatchEvent(new Event("notifications-updated"))
-      navigate(`/requestor/tickets/\${newTicket.id}`)
+      navigate("/requestor/tickets/" + newTicket.id)
     }
   }
 
