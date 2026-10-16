@@ -185,7 +185,7 @@ export function Signup() {
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Full Name</label>
             <Input
               required
-              placeholder="e.g., John Doe"
+              placeholder="Full Name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
@@ -196,7 +196,7 @@ export function Signup() {
             <Input
               required
               type="email"
-              placeholder="user@example.com"
+              placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
