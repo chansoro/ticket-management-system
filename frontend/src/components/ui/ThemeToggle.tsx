@@ -6,7 +6,8 @@ export function ThemeToggle() {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("theme")
       if (stored) return stored === "dark"
-      return document.documentElement.classList.contains("dark")
+      // Default to light mode unless explicitly stored as dark
+      return false
     }
     return false
   })
