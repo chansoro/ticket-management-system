@@ -1,3 +1,4 @@
+import { SidebarThemeToggle } from '@/components/ui/SidebarThemeToggle'
 ﻿import React, { useState, useEffect } from "react"
 import { NavLink, useNavigate, useLocation } from "react-router-dom"
 import { 
@@ -106,6 +107,7 @@ export function Sidebar({ role }: SidebarProps) {
 
       {/* Profile & Logout Section */}
       <div className="p-3 border-t border-slate-800">
+        <SidebarThemeToggle />
         <div className="flex items-center justify-between rounded-2xl bg-slate-950/40 p-3 border border-slate-800/60">
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="h-9 w-9 rounded-xl bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-bold text-xs shrink-0">
