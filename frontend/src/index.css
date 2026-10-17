@@ -221,3 +221,11 @@ html.dark span[class*="bg-indigo"],
 html.dark span[class*="bg-slate"] {
   opacity: 0.95 !important;
 }
+
+/* Surgical Dark Mode Text Contrast Fix */
+html.dark p, html.dark span, html.dark h1, html.dark h2, html.dark h3, html.dark td, html.dark th {
+  color: #f8fafc !important;
+}
+html.dark .text-slate-500, html.dark .text-slate-600 {
+  color: #94a3b8 !important;
+}

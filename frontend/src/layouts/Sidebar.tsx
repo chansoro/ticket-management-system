@@ -1,4 +1,4 @@
-import { SidebarThemeToggle } from '@/components/ui/SidebarThemeToggle'
+﻿import { SidebarThemeToggle } from '@/components/ui/SidebarThemeToggle'
 ﻿import React, { useState, useEffect } from "react"
 import { NavLink, useNavigate, useLocation } from "react-router-dom"
 import { 
@@ -73,7 +73,7 @@ export function Sidebar({ role }: SidebarProps) {
         </div>
         <div>
           <h1 className="text-white font-black text-base tracking-tight leading-none">Resolvr</h1>
-          <p className="text-[10px] uppercase font-bold tracking-wider text-indigo-400 mt-1">Ticket Management</p>
+          <p className="text-[10px] uppercase font-bold tracking-wider text-indigo-400 mt-1">TICKET MANAGEMENT SYSTEM</p>
         </div>
       </div>
 
@@ -213,3 +213,4 @@ export function AppShell({ children, role }: AppShellProps) {
     </div>
   )
 }
+
