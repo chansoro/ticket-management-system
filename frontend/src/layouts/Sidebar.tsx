@@ -160,8 +160,8 @@ interface AppShellProps {
 
 export function AppShell(${appShellMatch[1]}) {
   const [isDark, setIsDark] = React.useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("resolvr_theme") === "dark";
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('resolvr_theme') === 'dark';
     }
     return false;
   });
@@ -169,15 +169,16 @@ export function AppShell(${appShellMatch[1]}) {
   React.useEffect(() => {
     const root = document.documentElement;
     if (isDark) {
-      root.classList.add("dark");
-      localStorage.setItem("resolvr_theme", "dark");
+      root.classList.add('dark');
+      localStorage.setItem('resolvr_theme', 'dark');
     } else {
-      root.classList.remove("dark");
-      localStorage.setItem("resolvr_theme", "light");
+      root.classList.remove('dark');
+      localStorage.setItem('resolvr_theme', 'light');
     }
   }, [isDark]);
 
   const toggleAppTheme = () => setIsDark((prev) => !prev);
+  
   
   
     
