@@ -137,20 +137,25 @@ interface AppShellProps {
 
 export function AppShell({ children, role }: AppShellProps) {
   const [isDark, setIsDark] = React.useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("resolvr_theme") === "dark";
+    try {
+      return typeof window !== "undefined" && localStorage.getItem("resolvr_theme") === "dark";
+    } catch {
+      return false;
     }
-    return false;
   });
 
   React.useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add("dark");
-      localStorage.setItem("resolvr_theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("resolvr_theme", "light");
+    try {
+      const root = document.documentElement;
+      if (isDark) {
+        root.classList.add("dark");
+        localStorage.setItem("resolvr_theme", "dark");
+      } else {
+        root.classList.remove("dark");
+        localStorage.setItem("resolvr_theme", "light");
+      }
+    } catch (e) {
+      console.error(e);
     }
   }, [isDark]);
 
@@ -193,6 +198,7 @@ export function AppShell({ children, role }: AppShellProps) {
     </div>
   )
 }
+
 
 
 
