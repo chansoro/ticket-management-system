@@ -42,18 +42,6 @@ export function Sidebar({ role, userName, unreadCount = 0 }: { role: Role; userN
 
   return (
     <aside className="flex h-full w-64 flex-shrink-0 flex-col border-r border-slate-800 bg-[#0f172a] text-slate-200">
-        <div className="lg:hidden flex items-center justify-between px-4 pt-3 pb-1 border-b border-slate-800/80 no-print">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Navigation Menu</span>
-          <button
-            type="button"
-            onClick={() => setMobileOpen(false)}
-            style={{ backgroundColor: "#1e293b", color: "#f8fafc", borderColor: "#334155" }}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-sm font-bold cursor-pointer"
-            title="Close Menu"
-          >
-            ✕
-          </button>
-        </div>
       <div className="border-b border-slate-800/80 px-5 pb-5 pt-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md">
@@ -94,7 +82,8 @@ export function Sidebar({ role, userName, unreadCount = 0 }: { role: Role; userN
           )
         })}
       </nav>
-        <div className="px-3 pt-2 pb-2 no-print">
+      <div 
+        <div className="px-3 py-2 no-print">
           <button
             type="button"
             onClick={toggleAppTheme}
@@ -114,7 +103,7 @@ export function Sidebar({ role, userName, unreadCount = 0 }: { role: Role; userN
             </span>
           </button>
         </div>
-      <div className="border-t border-slate-800/80 px-3 pb-4 pt-3">
+        <div className="border-t border-slate-800/80 px-3 pb-4 pt-3">
         <div className="flex items-center gap-3 rounded-xl bg-slate-800/60 px-3 py-2.5">
           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold text-indigo-300">
             {initials}
@@ -139,7 +128,6 @@ export function AppShell({ children, role, userName }: { children: ReactNode; ro
     }
     return false;
   });
-  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   React.useEffect(() => {
     const root = document.documentElement;
@@ -151,14 +139,6 @@ export function AppShell({ children, role, userName }: { children: ReactNode; ro
       localStorage.setItem("resolvr_theme", "light");
     }
   }, [isDark]);
-
-  React.useEffect(() => {
-    const asideEl = document.querySelector("aside");
-    if (asideEl) {
-      if (mobileOpen) asideEl.classList.add("mobile-aside-open");
-      else asideEl.classList.remove("mobile-aside-open");
-    }
-  }, [mobileOpen]);
 
   const toggleAppTheme = () => setIsDark((prev) => !prev);
   const navigate = useNavigate()
@@ -174,22 +154,6 @@ export function AppShell({ children, role, userName }: { children: ReactNode; ro
     <div className="flex h-screen w-screen bg-[#f8fafc] text-slate-900 overflow-hidden">
       <Sidebar role={role} userName={userName} unreadCount={unreadCount} />
       <main className="flex-1 overflow-y-auto">
-        {mobileOpen && (
-          <div
-            onClick={() => setMobileOpen(false)}
-            className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs lg:hidden no-print"
-          />
-        )}
-        {!mobileOpen && (
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            style={{ backgroundColor: "#4f46e5", color: "#ffffff" }}
-            className="lg:hidden no-print fixed bottom-5 left-5 z-40 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold shadow-xl border border-indigo-400/40 cursor-pointer"
-          >
-            <span>☰ Menu</span>
-          </button>
-        )}
         {latest && (
           <div className="no-print flex items-center gap-3 border-b border-indigo-100 bg-indigo-50 px-8 py-3 text-sm text-indigo-900">
             <Bell className="h-4 w-4 flex-shrink-0 text-indigo-600" />
