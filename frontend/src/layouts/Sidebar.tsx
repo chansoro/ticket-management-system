@@ -160,6 +160,26 @@ interface AppShellProps {
 
 export function AppShell(${appShellMatch[1]}) {
   const [isDark, setIsDark] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("resolvr_theme") === "dark";
+    }
+    return false;
+  });
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add("dark");
+      localStorage.setItem("resolvr_theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("resolvr_theme", "light");
+    }
+  }, [isDark]);
+
+  const toggleAppTheme = () => setIsDark((prev) => !prev);
+  const [isDark, setIsDark] = React.useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('resolvr_theme') === 'dark';
     }
@@ -181,12 +201,38 @@ export function AppShell(${appShellMatch[1]}) {
   
   
   
-  
     
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       <Sidebar role={role} />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
+        <div className="no-print flex items-center justify-end gap-2.5 mb-4">
+          <button
+            type="button"
+            onClick={() => {
+              const asideEl = document.querySelector("aside");
+              if (asideEl) {
+                asideEl.classList.toggle("mobile-aside-open");
+              }
+              setMobileMenuOpen((v) => !v);
+            }}
+            className="lg:hidden mr-auto inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs cursor-pointer"
+          >
+            <span>{mobileMenuOpen ? "✕ Close Menu" : "☰ Menu"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={toggleAppTheme}
+            style={{
+              backgroundColor: isDark ? "#0f172a" : "#ffffff",
+              borderColor: isDark ? "#334155" : "#cbd5e1",
+              color: isDark ? "#fbbf24" : "#334155"
+            }}
+            className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold shadow-xs transition hover:opacity-90 cursor-pointer"
+          >
+            <span>{isDark ? "☀ Light Mode" : "🌙 Dark Mode"}</span>
+          </button>
+        </div>
         <div className="no-print flex items-center justify-end gap-2.5 mb-4">
           <button
             type="button"
