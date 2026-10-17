@@ -1,191 +1,128 @@
-import React from "react"
-import { useCallback, useEffect, useState, type ReactNode } from "react"
-import { NavLink, useLocation, useNavigate } from "react-router-dom"
-import { BarChart3, Bell, CheckCircle2, Code2, House, ShieldCheck, ListTodo, LogOut, Plus, Tags, Users, type LucideIcon } from "lucide-react"
-import { useAuth } from "@/contexts/AuthContext"
+﻿import React, { useState, useEffect } from "react"
+import { NavLink, useNavigate, useLocation } from "react-router-dom"
+import { 
+  LayoutDashboard, 
+  Ticket, 
+  BarChart3, 
+  Users, 
+  FolderKanban, 
+  Tag, 
+  Bell, 
+  LogOut,
+  ShieldAlert
+} from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
-type Role = "requestor" | "admin" | "developer"
-interface NavItem { label: string; to: string; icon: LucideIcon }
-
-const roleNavItems: Record<Role, NavItem[]> = {
-  requestor: [
-    { label: "Dashboard", to: "/requestor", icon: House },
-    { label: "My Requests", to: "/requestor/tickets", icon: ListTodo },
-    { label: "Submit Request", to: "/requestor/create", icon: Plus },
-    { label: "Notifications", to: "/requestor/notifications", icon: Bell },
-  ],
-  admin: [
-    { label: "Dashboard", to: "/admin", icon: House },
-    { label: "Tickets", to: "/admin/tickets", icon: ListTodo },
-    { label: "Reports", to: "/admin/reports", icon: BarChart3 },
-    { label: "Developers", to: "/admin/developers", icon: Code2 },
-    { label: "Users", to: "/admin/users", icon: Users },
-    { label: "Categories", to: "/admin/categories", icon: Tags },
-    { label: "Notifications", to: "/admin/notifications", icon: Bell },
-  ],
-  developer: [
-    { label: "Dashboard", to: "/developer", icon: House },
-    { label: "My Tickets", to: "/developer/tickets", icon: ListTodo },
-    { label: "Resolved", to: "/developer/resolved", icon: CheckCircle2 },
-    { label: "Notifications", to: "/developer/notifications", icon: Bell },
-  ],
+interface SidebarProps {
+  role: "admin" | "developer" | "user"
 }
 
-export function Sidebar({ role, userName, unreadCount = 0 }: { role: Role; userName?: string; unreadCount?: number }) {
+export function Sidebar({ role }: SidebarProps) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { profile } = useAuth()
-  const displayName = profile?.full_name ?? userName ?? "User"
-  const roleLabel = role === "user" ? "Requestor" : role[0].toUpperCase() + role.slice(1)
-  const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+  const [userName, setUserName] = useState("User")
+  const [userEmail, setUserEmail] = useState("")
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUserEmail(user.email || "")
+        setUserName(user.user_metadata?.full_name || user.email?.split("@")[0] || "User")
+      }
+    })
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    navigate("/login")
+  }
+
+  const adminNav = [
+    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    { name: "Tickets", href: "/admin/tickets", icon: Ticket },
+    { name: "Reports", href: "/admin/reports", icon: BarChart3 },
+    { name: "Developers", href: "/admin/developers", icon: FolderKanban },
+    { name: "Users", href: "/admin/users", icon: Users },
+    { name: "Categories", href: "/admin/categories", icon: Tag },
+    { name: "Notifications", href: "/admin/notifications", icon: Bell, badge: unreadCount },
+  ]
+
+  const devNav = [
+    { name: "Dashboard", href: "/developer/dashboard", icon: LayoutDashboard },
+    { name: "My Tickets", href: "/developer/tickets", icon: Ticket },
+    { name: "Resolved", href: "/developer/resolved", icon: FolderKanban },
+    { name: "Notifications", href: "/developer/notifications", icon: Bell, badge: unreadCount },
+  ]
+
+  const userNav = [
+    { name: "Dashboard", href: "/user/dashboard", icon: LayoutDashboard },
+    { name: "Submit Request", href: "/user/create", icon: Ticket },
+    { name: "My Tickets", href: "/user/tickets", icon: FolderKanban },
+    { name: "Notifications", href: "/user/notifications", icon: Bell, badge: unreadCount },
+  ]
+
+  const navItems = role === "admin" ? adminNav : role === "developer" ? devNav : userNav
 
   return (
-    <aside className="flex h-full w-64 flex-shrink-0 flex-col border-r border-slate-800 bg-[#0f172a] text-slate-200">
-        <div className="lg:hidden flex items-center justify-between px-4 pt-3 pb-1 border-b border-slate-800/80 no-print">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Navigation Menu</span>
-          <button
-            type="button"
-            onClick={() => setMobileOpen(false)}
-            style={{ backgroundColor: "#1e293b", color: "#f8fafc", borderColor: "#334155" }}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-sm font-bold cursor-pointer"
-            title="Close Menu"
-          >
-            ✕
-          </button>
+    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 select-none border-r border-slate-800">
+      <div className="p-6 border-b border-slate-800/80 flex items-center gap-3">
+        <div className="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black shadow-md">
+          <ShieldAlert className="h-5 w-5" />
         </div>
-      <div className="border-b border-slate-800/80 px-5 pb-5 pt-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md">
-            <ShieldCheck className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-base font-extrabold tracking-tight text-white leading-none">Resolvr</p>
-            <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-400 whitespace-nowrap">
-              Ticket Management System
-            </p>
-          </div>
+        <div>
+          <h1 className="text-white font-black text-base tracking-tight leading-none">Resolvr</h1>
+          <p className="text-[10px] uppercase font-bold tracking-wider text-indigo-400 mt-1">Ticket Management</p>
         </div>
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-          {role === "admin" ? "Administration" : role === "developer" ? "Developer Portal" : "Requestor Portal"}
-        </p>
-        {roleNavItems[role].map(({ label, to, icon: Icon }) => {
-          const cleanCur = location.pathname.replace(/\/+$/, "")
-          const cleanTar = to.replace(/\/+$/, "")
-          const isRoot = cleanTar === "/" + role
-          const isActive = isRoot ? cleanCur === cleanTar : cleanCur === cleanTar || cleanCur.startsWith(cleanTar + "/")
+
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {navItems.map((item) => {
+          const Icon = item.icon
+          const isActive = location.pathname === item.href
           return (
             <NavLink
-              key={to}
-              to={to}
-              className={"group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all " + (isActive ? "bg-indigo-600 text-white font-semibold shadow-md" : "text-slate-400 hover:bg-slate-800/75 hover:text-slate-100")}
+              key={item.name}
+              to={item.href}
+              className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition \${
+                isActive
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+              }`}
             >
-              {isActive && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-white" />}
-              <Icon className={"h-[18px] w-[18px] " + (isActive ? "text-white" : "text-slate-400 group-hover:text-slate-200")} strokeWidth={1.75} />
-              <span className="flex-1">{label}</span>
-              {label === "Notifications" && unreadCount > 0 && (
-                <span className="min-w-5 rounded-full bg-indigo-500 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">
-                  {unreadCount > 99 ? "99+" : unreadCount}
+              <div className="flex items-center gap-3">
+                <Icon className="h-4 w-4 shrink-0" />
+                <span>{item.name}</span>
+              </div>
+              {item.badge ? (
+                <span className="px-2 py-0.5 rounded-full bg-indigo-500 text-white text-[10px] font-bold">
+                  {item.badge}
                 </span>
-              )}
+              ) : null}
             </NavLink>
           )
         })}
       </nav>
-        <div className="px-3 py-2 no-print">
-          <button
-            type="button"
-            onClick={toggleAppTheme}
-            style={{
-              backgroundColor: "#0f172a",
-              borderColor: "#1e293b",
-              color: "#e2e8f0"
-            }}
-            className="flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition hover:opacity-90 cursor-pointer"
-          >
-            <span className="flex items-center gap-2.5">
-              <span style={{ color: isDark ? "#fbbf24" : "#818cf8" }} className="text-sm">{isDark ? "☀" : "🌙"}</span>
-              <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
-            </span>
-            <span style={{ backgroundColor: "#1e293b", color: "#818cf8" }} className="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-              {isDark ? "Dark" : "Light"}
-            </span>
-          </button>
-        </div>
-        <div className="px-3 py-2 no-print">
-          <button
-            type="button"
-            onClick={toggleAppTheme}
-            style={{
-              backgroundColor: "#0f172a",
-              borderColor: "#1e293b",
-              color: "#e2e8f0"
-            }}
-            className="flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition hover:opacity-90 cursor-pointer"
-          >
-            <span className="flex items-center gap-2.5">
-              <span style={{ color: isDark ? "#fbbf24" : "#818cf8" }} className="text-sm">{isDark ? "☀" : "🌙"}</span>
-              <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
-            </span>
-            <span style={{ backgroundColor: "#1e293b", color: "#818cf8" }} className="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-              {isDark ? "Dark" : "Light"}
-            </span>
-          </button>
-        </div>
-        <div className="px-3 pt-2 pb-2 no-print">
-          <button
-            type="button"
-            onClick={toggleAppTheme}
-            style={{
-              backgroundColor: "#0f172a",
-              borderColor: "#1e293b",
-              color: "#e2e8f0"
-            }}
-            className="flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition hover:opacity-90 cursor-pointer"
-          >
-            <span className="flex items-center gap-2.5">
-              <span style={{ color: isDark ? "#fbbf24" : "#818cf8" }} className="text-sm">{isDark ? "☀" : "🌙"}</span>
-              <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
-            </span>
-            <span style={{ backgroundColor: "#1e293b", color: "#818cf8" }} className="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-              {isDark ? "Dark" : "Light"}
-            </span>
-          </button>
-        </div>
-      <div 
-        <div className="px-3 py-2 no-print">
-          <button
-            type="button"
-            onClick={toggleAppTheme}
-            style={{
-              backgroundColor: "#0f172a",
-              borderColor: "#1e293b",
-              color: "#e2e8f0"
-            }}
-            className="flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition hover:opacity-90 cursor-pointer"
-          >
-            <span className="flex items-center gap-2.5">
-              <span style={{ color: isDark ? "#fbbf24" : "#818cf8" }} className="text-sm">{isDark ? "☀" : "🌙"}</span>
-              <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
-            </span>
-            <span style={{ backgroundColor: "#1e293b", color: "#818cf8" }} className="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-              {isDark ? "Dark" : "Light"}
-            </span>
-          </button>
-        </div>
-        <div className="border-t border-slate-800/80 px-3 pb-4 pt-3">
-        <div className="flex items-center gap-3 rounded-xl bg-slate-800/60 px-3 py-2.5">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold text-indigo-300">
-            {initials}
+
+      {/* Profile & Logout Section */}
+      <div className="p-3 border-t border-slate-800">
+        <div className="flex items-center justify-between rounded-2xl bg-slate-950/40 p-3 border border-slate-800/60">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="h-9 w-9 rounded-xl bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-bold text-xs shrink-0">
+              {userName ? userName.charAt(0).toUpperCase() : "U"}
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-xs font-bold text-white truncate">{userName}</p>
+              <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wider">{role}</p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">{displayName}</p>
-            <p className="truncate text-xs capitalize text-slate-400">{roleLabel}</p>
-          </div>
-          <button type="button" onClick={async () => { await supabase.auth.signOut(); navigate("/login", { replace: true }) }} className="text-slate-400 hover:text-rose-400">
-            <LogOut className="h-4 w-4" strokeWidth={1.75} />
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Log Out"
+            className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
+          >
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -193,174 +130,51 @@ export function Sidebar({ role, userName, unreadCount = 0 }: { role: Role; userN
   )
 }
 
-export function AppShell({ children, role, userName }: { children: ReactNode; role: Role; userName?: string }) {
-  const [isDark, setIsDark] = React.useState(() => {
+interface AppShellProps {
+  children: React.ReactNode
+  role: "admin" | "developer" | "user"
+}
+
+export function AppShell({ children, role }: AppShellProps) {
+  const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("resolvr_theme") === "dark";
+      return localStorage.getItem("resolvr_theme") === "dark"
     }
-    return false;
-  });
+    return false
+  })
 
-  React.useEffect(() => {
-    const root = document.documentElement;
+  useEffect(() => {
+    const root = document.documentElement
     if (isDark) {
-      root.classList.add("dark");
-      localStorage.setItem("resolvr_theme", "dark");
+      root.classList.add("dark")
+      localStorage.setItem("resolvr_theme", "dark")
     } else {
-      root.classList.remove("dark");
-      localStorage.setItem("resolvr_theme", "light");
+      root.classList.remove("dark")
+      localStorage.setItem("resolvr_theme", "light")
     }
-  }, [isDark]);
+  }, [isDark])
 
-  const toggleAppTheme = () => setIsDark((prev) => !prev);
-  const [isDark, setIsDark] = React.useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("resolvr_theme") === "dark";
-    }
-    return false;
-  });
+  const toggleAppTheme = () => setIsDark((prev) => !prev)
 
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add("dark");
-      localStorage.setItem("resolvr_theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("resolvr_theme", "light");
-    }
-  }, [isDark]);
-
-  const toggleAppTheme = () => setIsDark((prev) => !prev);
-  const [isDark, setIsDark] = React.useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("resolvr_theme") === "dark";
-    }
-    return false;
-  });
-
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add("dark");
-      localStorage.setItem("resolvr_theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("resolvr_theme", "light");
-    }
-  }, [isDark]);
-
-  const toggleAppTheme = () => setIsDark((prev) => !prev);
-  const [isDark, setIsDark] = React.useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("resolvr_theme") === "dark";
-    }
-    return false;
-  });
-
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add("dark");
-      localStorage.setItem("resolvr_theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("resolvr_theme", "light");
-    }
-  }, [isDark]);
-
-  const toggleAppTheme = () => setIsDark((prev) => !prev);
-  const [isDark, setIsDark] = React.useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("resolvr_theme") === "dark";
-    }
-    return false;
-  });
-  const [mobileOpen, setMobileOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add("dark");
-      localStorage.setItem("resolvr_theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("resolvr_theme", "light");
-    }
-  }, [isDark]);
-
-  React.useEffect(() => {
-    const asideEl = document.querySelector("aside");
-    if (asideEl) {
-      if (mobileOpen) asideEl.classList.add("mobile-aside-open");
-      else asideEl.classList.remove("mobile-aside-open");
-    }
-  }, [mobileOpen]);
-
-  const toggleAppTheme = () => setIsDark((prev) => !prev);
-  const navigate = useNavigate()
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [latest, setLatest] = useState<any>(null)
-  const reload = useCallback(async () => {
-    const { data, count } = await supabase.from("notifications").select("id,title,body,ticket_id,created_at", { count: "exact" }).is("read_at", null).order("created_at", { ascending: false }).limit(1)
-    setUnreadCount(count ?? 0)
-    setLatest((data ?? [])[0] ?? null)
-  }, [])
-  useEffect(() => { void reload() }, [reload])
   return (
-    <div className="flex h-screen w-screen bg-[#f8fafc] text-slate-900 overflow-hidden">
-      <Sidebar role={role} userName={userName} unreadCount={unreadCount} />
-      <main className="flex-1 overflow-y-auto">
-        {mobileOpen && (
-          <div
-            onClick={() => setMobileOpen(false)}
-            className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs lg:hidden no-print"
-          />
-        )}
-        {!mobileOpen && (
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+      <Sidebar role={role} />
+      <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
+        <div className="no-print absolute top-6 right-8 z-20">
           <button
             type="button"
-            onClick={() => setMobileOpen(true)}
-            style={{ backgroundColor: "#4f46e5", color: "#ffffff" }}
-            className="lg:hidden no-print fixed bottom-5 left-5 z-40 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold shadow-xl border border-indigo-400/40 cursor-pointer"
+            onClick={toggleAppTheme}
+            style={{
+              backgroundColor: isDark ? "#0f172a" : "#ffffff",
+              borderColor: isDark ? "#334155" : "#cbd5e1",
+              color: isDark ? "#fbbf24" : "#334155"
+            }}
+            className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold shadow-sm transition hover:opacity-90 cursor-pointer"
           >
-            <span>☰ Menu</span>
+            <span>{isDark ? "☀ Light Mode" : "🌙 Dark Mode"}</span>
           </button>
-        )}
-        {latest && (
-          <div className="no-print flex items-center gap-3 border-b border-indigo-100 bg-indigo-50 px-8 py-3 text-sm text-indigo-900">
-            <Bell className="h-4 w-4 flex-shrink-0 text-indigo-600" />
-            <div className="min-w-0 flex-1">
-              <span className="font-semibold">{latest.title}</span>
-              <span className="ml-2 text-indigo-700">{latest.body}</span>
-            </div>
-            <button type="button" className="font-semibold text-indigo-600 hover:underline" onClick={() => navigate("/" + role + "/notifications")}>
-              View notifications
-            </button>
-          </div>
-        )}
-        
-      <div className="px-3 py-2 no-print">
-        <button
-          type="button"
-          onClick={toggleAppTheme}
-          style={{
-            backgroundColor: "#0f172a",
-            borderColor: "#1e293b",
-            color: "#e2e8f0"
-          }}
-          className="flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition hover:opacity-90 cursor-pointer"
-        >
-          <span className="flex items-center gap-2.5">
-            <span style={{ color: isDark ? "#fbbf24" : "#818cf8" }} className="text-sm">{isDark ? "☀" : "🌙"}</span>
-            <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
-          </span>
-          <span style={{ backgroundColor: "#1e293b", color: "#818cf8" }} className="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-            {isDark ? "Dark" : "Light"}
-          </span>
-        </button>
-      </div>
-      <div className="w-full px-6 py-6">{children}</div>
+        </div>
+        {children}
       </main>
     </div>
   )
