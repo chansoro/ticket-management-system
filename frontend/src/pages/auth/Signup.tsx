@@ -3,6 +3,8 @@ import { Link } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
 import { ShieldCheck, Eye, EyeOff, Sun, Moon, MailCheck } from "lucide-react"
 
+const isValidGmail = (value: string) => /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(value.trim())
+
 export function Signup() {
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
@@ -18,21 +20,27 @@ export function Signup() {
   useEffect(() => {
     const saved = localStorage.getItem("resolvr_theme") === "dark"
     setIsDark(saved)
+    document.documentElement.classList.toggle("dark", saved)
   }, [])
 
   const toggleTheme = () => {
     const next = !isDark
     setIsDark(next)
     localStorage.setItem("resolvr_theme", next ? "dark" : "light")
+    document.documentElement.classList.toggle("dark", next)
   }
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    const cleanEmail = email.trim().toLowerCase()
+    if (!isValidGmail(cleanEmail)) {
+      setError("Registration strictly accepts @gmail.com addresses only.")
+      return
+    }
     if (password.length < 6) { setError("Password must be at least 6 characters."); return }
     if (password !== confirmPassword) { setError("Passwords do not match."); return }
     setLoading(true)
-    const cleanEmail = email.trim()
     const { data, error: signUpErr } = await supabase.auth.signUp({
       email: cleanEmail,
       password,
@@ -54,13 +62,13 @@ export function Signup() {
   }
 
   return (
-    <div style={{ backgroundColor: isDark ? "#020617" : "#f1f5f9", color: isDark ? "#ffffff" : "#0f172a" }} className="flex min-h-screen items-center justify-center px-4 py-12 relative transition-colors">
-      <button type="button" onClick={toggleTheme} style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#cbd5e1", color: isDark ? "#fbbf24" : "#334155" }} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm cursor-pointer">
+    <div style={{ backgroundColor: isDark ? "#020617" : "#f1f5f9", color: isDark ? "#ffffff" : "#0f172a" }} className="flex min-h-screen items-center justify-center px-4 py-8 sm:py-12 relative transition-colors">
+      <button type="button" onClick={toggleTheme} style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#cbd5e1", color: isDark ? "#fbbf24" : "#334155" }} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2.5 rounded-full border shadow-sm cursor-pointer">
         {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
       </button>
-      <div style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#e2e8f0" }} className="w-full max-w-md rounded-3xl border p-8 sm:p-10 shadow-2xl">
+      <div style={{ backgroundColor: isDark ? "#0f172a" : "#ffffff", borderColor: isDark ? "#1e293b" : "#e2e8f0" }} className="w-full max-w-md rounded-3xl border p-6 sm:p-10 shadow-2xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg"><ShieldCheck className="h-6 w-6" /></div>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg"><ShieldCheck className="h-6 w-6" /></div>
           <div>
             <h1 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-xl font-black tracking-tight leading-none">Resolvr</h1>
             <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-indigo-500">Ticket Management System</p>
@@ -74,16 +82,24 @@ export function Signup() {
             </div>
             <h2 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-2xl font-bold tracking-tight">Check your email</h2>
             <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="text-sm leading-relaxed">
-              We sent a confirmation link to <strong style={{ color: isDark ? "#ffffff" : "#0f172a" }}>{submittedEmail}</strong>. Click the verification link in your inbox to activate your account, then sign in below.
+              We sent a confirmation link to <strong style={{ color: isDark ? "#ffffff" : "#0f172a" }}>{submittedEmail}</strong>. Click the verification link in your inbox to activate your account.
             </p>
-            <Link to="/login" className="mt-4 block w-full rounded-xl bg-indigo-600 py-3 text-center text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition">
+            <button
+              type="button"
+              onClick={() => setSubmittedEmail("")}
+              style={{ borderColor: isDark ? "#334155" : "#cbd5e1", color: isDark ? "#cbd5e1" : "#334155" }}
+              className="w-full rounded-xl border py-2.5 text-xs font-semibold hover:opacity-80 transition cursor-pointer"
+            >
+              Change email address
+            </button>
+            <Link to="/login" className="block w-full rounded-xl bg-indigo-600 py-3 text-center text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition">
               Proceed to Sign In
             </Link>
           </div>
         ) : (
           <>
             <h2 style={{ color: isDark ? "#ffffff" : "#0f172a" }} className="text-2xl font-bold tracking-tight">Create an account</h2>
-            <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-1 text-sm">Submit and track IT service requests with departmental triage.</p>
+            <p style={{ color: isDark ? "#94a3b8" : "#64748b" }} className="mt-1 text-sm">Register with a valid @gmail.com address to submit and track requests.</p>
             {error && <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-medium text-rose-500">{error}</div>}
             <form onSubmit={handleSignup} className="mt-6 space-y-4">
               <div>
@@ -91,8 +107,8 @@ export function Signup() {
                 <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Full Name" />
               </div>
               <div>
-                <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Email Address</label>
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Email Address" />
+                <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Gmail Address</label>
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: isDark ? "#ffffff" : "#0f172a", borderColor: isDark ? "#334155" : "#cbd5e1" }} className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Email Address (@gmail.com)" />
               </div>
               <div>
                 <label style={{ color: isDark ? "#cbd5e1" : "#334155" }} className="block text-xs font-bold uppercase tracking-wider mb-1.5">Password</label>

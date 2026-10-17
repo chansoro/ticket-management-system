@@ -5,15 +5,80 @@
     background-color: #f8fafc;
     color: #0f172a;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+}
+
+/* Inside-Account Dark Mode Overrides (Activated when html.dark is present) */
+html.dark body {
+  background-color: #020617 !important;
+  color: #f8fafc !important;
+}
+html.dark main {
+  background-color: #020617 !important;
+  color: #f8fafc !important;
+}
+html.dark .bg-white {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/80,
+html.dark .bg-slate-50\/60,
+html.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700 {
+  color: #f1f5f9 !important;
+}
+html.dark .text-slate-600,
+html.dark .text-slate-500,
+html.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+html.dark .border-slate-200,
+html.dark .border-slate-200\/80,
+html.dark .border-slate-300,
+html.dark .border-slate-100 {
+  border-color: #1e293b !important;
+}
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #1e293b !important;
+}
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+html.dark tr:hover {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+/* Mobile-Only Layout Rules (Does NOT affect Laptop/Desktop >= 1024px) */
+@media (max-width: 1023px) {
+  .overflow-hidden:has(table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  table {
+    min-width: 680px !important;
   }
 }
 
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 12mm;
   }
-  html, body {
+  html, body, html.dark body, html.dark main, html.dark .bg-white {
     background: white !important;
     color: black !important;
     height: 100% !important;
@@ -42,19 +107,10 @@
     flex-direction: column !important;
     justify-content: space-between !important;
   }
-  .print-statement table th {
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
-    padding-left: 6px !important;
-    padding-right: 6px !important;
-    font-size: 10.5px !important;
-    white-space: nowrap !important;
-  }
+  .print-statement table th,
   .print-statement table td {
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
-    padding-left: 6px !important;
-    padding-right: 6px !important;
-    font-size: 12px !important;
+    padding-top: 11px !important;
+    padding-bottom: 11px !important;
+    font-size: 12.5px !important;
   }
 }

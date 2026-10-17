@@ -1,3 +1,4 @@
+import React from "react"
 import { useCallback, useEffect, useState, type ReactNode } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { BarChart3, Bell, CheckCircle2, Code2, House, ShieldCheck, ListTodo, LogOut, Plus, Tags, Users, type LucideIcon } from "lucide-react"
@@ -40,7 +41,7 @@ export function Sidebar({ role, userName, unreadCount = 0 }: { role: Role; userN
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
 
   return (
-    <aside className="flex h-full w-64 flex-shrink-0 flex-col border-r border-slate-800 bg-[#0f172a] text-slate-200">
+    <aside className={`flex h-full w-64 flex-shrink-0 flex-col border-r border-slate-800 bg-[#0f172a] text-slate-200 fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0 flex" : "-translate-x-full hidden lg:flex"}`}>
       <div className="border-b border-slate-800/80 px-5 pb-5 pt-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md">
@@ -100,6 +101,26 @@ export function Sidebar({ role, userName, unreadCount = 0 }: { role: Role; userN
 }
 
 export function AppShell({ children, role, userName }: { children: ReactNode; role: Role; userName?: string }) {
+  const [isDark, setIsDark] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("resolvr_theme") === "dark";
+    }
+    return false;
+  });
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add("dark");
+      localStorage.setItem("resolvr_theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("resolvr_theme", "light");
+    }
+  }, [isDark]);
+
+  const toggleAppTheme = () => setIsDark((prev) => !prev);
   const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
   const [latest, setLatest] = useState<any>(null)
@@ -112,7 +133,35 @@ export function AppShell({ children, role, userName }: { children: ReactNode; ro
   return (
     <div className="flex h-screen w-screen bg-[#f8fafc] text-slate-900 overflow-hidden">
       <Sidebar role={role} userName={userName} unreadCount={unreadCount} />
-      <main className="flex-1 overflow-y-auto">
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs lg:hidden no-print"
+        />
+      )}
+      <main className="flex-1 overflow-y-auto relative">
+        <div className="no-print flex items-center justify-between gap-3 mb-4 lg:mb-0 lg:fixed lg:top-4 lg:right-6 lg:z-30">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((v) => !v)}
+            className="lg:hidden inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs cursor-pointer"
+          >
+            <span>☰ Menu</span>
+          </button>
+          <button
+            type="button"
+            onClick={toggleAppTheme}
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            style={{
+              backgroundColor: isDark ? "#0f172a" : "#ffffff",
+              borderColor: isDark ? "#334155" : "#cbd5e1",
+              color: isDark ? "#fbbf24" : "#334155"
+            }}
+            className="ml-auto inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold shadow-sm transition hover:opacity-90 cursor-pointer"
+          >
+            <span>{isDark ? "☀ Light Mode" : "🌙 Dark Mode"}</span>
+          </button>
+        </div>
         {latest && (
           <div className="no-print flex items-center gap-3 border-b border-indigo-100 bg-indigo-50 px-8 py-3 text-sm text-indigo-900">
             <Bell className="h-4 w-4 flex-shrink-0 text-indigo-600" />
