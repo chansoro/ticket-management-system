@@ -86,9 +86,7 @@ export function Sidebar({ role }: SidebarProps) {
               key={item.name}
               to={item.href}
               className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition \${
-                isActive
-                  ? "bg-indigo-600 text-white shadow-md"
-                  : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+                isActive ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -162,20 +160,7 @@ export function AppShell({ children, role }: AppShellProps) {
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       <Sidebar role={role} />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
-        <div className="no-print absolute top-6 right-8 z-20">
-          <button
-            type="button"
-            onClick={toggleAppTheme}
-            style={{
-              backgroundColor: isDark ? "#0f172a" : "#ffffff",
-              borderColor: isDark ? "#334155" : "#cbd5e1",
-              color: isDark ? "#fbbf24" : "#334155"
-            }}
-            className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold shadow-sm transition hover:opacity-90 cursor-pointer"
-          >
-            <span>{isDark ? "☀ Light Mode" : "🌙 Dark Mode"}</span>
-          </button>
-        </div>
+        
         {children}
       </main>
     </div>
