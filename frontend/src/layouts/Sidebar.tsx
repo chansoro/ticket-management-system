@@ -114,6 +114,26 @@ export function Sidebar({ role, userName, unreadCount = 0 }: { role: Role; userN
             </span>
           </button>
         </div>
+        <div className="px-3 py-2 no-print">
+          <button
+            type="button"
+            onClick={toggleAppTheme}
+            style={{
+              backgroundColor: "#0f172a",
+              borderColor: "#1e293b",
+              color: "#e2e8f0"
+            }}
+            className="flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition hover:opacity-90 cursor-pointer"
+          >
+            <span className="flex items-center gap-2.5">
+              <span style={{ color: isDark ? "#fbbf24" : "#818cf8" }} className="text-sm">{isDark ? "☀" : "🌙"}</span>
+              <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
+            </span>
+            <span style={{ backgroundColor: "#1e293b", color: "#818cf8" }} className="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+              {isDark ? "Dark" : "Light"}
+            </span>
+          </button>
+        </div>
         <div className="px-3 pt-2 pb-2 no-print">
           <button
             type="button"
@@ -174,6 +194,25 @@ export function Sidebar({ role, userName, unreadCount = 0 }: { role: Role; userN
 }
 
 export function AppShell({ children, role, userName }: { children: ReactNode; role: Role; userName?: string }) {
+  const [isDark, setIsDark] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("resolvr_theme") === "dark";
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add("dark");
+      localStorage.setItem("resolvr_theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("resolvr_theme", "light");
+    }
+  }, [isDark]);
+
+  const toggleAppTheme = () => setIsDark((prev) => !prev);
   const [isDark, setIsDark] = React.useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("resolvr_theme") === "dark";
