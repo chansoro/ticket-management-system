@@ -181,6 +181,7 @@ export function AppShell(${appShellMatch[1]}) {
   
   
   
+  
     
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
