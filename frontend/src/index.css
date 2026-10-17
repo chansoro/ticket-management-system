@@ -203,3 +203,21 @@ html.dark .bg-white {
     width: 260px !important;
   }
 }
+
+/* Dark Mode Text & Badge Contrast Fixes */
+html.dark span, html.dark p, html.dark h1, html.dark h2, html.dark h3, html.dark th, html.dark td {
+  color: #f8fafc;
+}
+
+html.dark .bg-white {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+html.dark span[class*="bg-emerald"], 
+html.dark span[class*="bg-amber"], 
+html.dark span[class*="bg-rose"],
+html.dark span[class*="bg-indigo"],
+html.dark span[class*="bg-slate"] {
+  opacity: 0.95 !important;
+}
