@@ -142,7 +142,6 @@ export function AppShell({ children, role }: AppShellProps) {
     }
     return false;
   });
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     const root = document.documentElement;
@@ -156,26 +155,7 @@ export function AppShell({ children, role }: AppShellProps) {
   }, [isDark]);
 
   const toggleAppTheme = () => setIsDark((prev) => !prev);
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("resolvr_theme") === "dark"
-    }
-    return false
-  })
-
-  useEffect(() => {
-    const root = document.documentElement
-    if (isDark) {
-      root.classList.add("dark")
-      localStorage.setItem("resolvr_theme", "dark")
-    } else {
-      root.classList.remove("dark")
-      localStorage.setItem("resolvr_theme", "light")
-    }
-  }, [isDark])
-
-  const toggleAppTheme = () => setIsDark((prev) => !prev)
-
+    
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       <Sidebar role={role} />
@@ -213,6 +193,7 @@ export function AppShell({ children, role }: AppShellProps) {
     </div>
   )
 }
+
 
 
 
