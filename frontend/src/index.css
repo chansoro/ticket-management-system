@@ -164,3 +164,42 @@ html.dark div[class*="bg-white"] {
 html.dark p, html.dark span, html.dark h1, html.dark h2, html.dark h3 {
   color: inherit;
 }
+
+/* Full Page Theme Transition */
+html, body, #root {
+  background-color: #f8fafc;
+  color: #0f172a;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.dark, html.dark body, html.dark #root {
+  background-color: #020617 !important;
+  color: #f8fafc !important;
+}
+
+html.dark main {
+  background-color: #020617 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .bg-white {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+/* Mobile Drawer Styles */
+@media (max-width: 1023px) {
+  aside {
+    display: none !important;
+  }
+  aside.mobile-aside-open {
+    display: flex !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    z-index: 50 !important;
+    width: 260px !important;
+  }
+}
