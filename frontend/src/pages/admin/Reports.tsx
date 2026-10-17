@@ -56,7 +56,6 @@ export function AdminReports() {
 
   const filteredRequestors = selectedRequestor === "all" ? requestors : requestors.filter((r) => r.id === selectedRequestor)
 
-  // CSV ONLY CONTAINS OPERATIONS RESOLUTION STATEMENT
   const handleDownloadCSV = () => {
     const q = (v: any) => "\"" + String(v ?? "").split("\"").join("\"\"") + "\""
     const rows: string[] = []
@@ -79,7 +78,7 @@ export function AdminReports() {
 
   return (
     <AppShell role="admin">
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-full overflow-hidden">
         <div className="no-print flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">General Reports</h1>
@@ -104,55 +103,58 @@ export function AdminReports() {
           </div>
         </div>
 
-        <div className="print-statement rounded-2xl border border-slate-200/80 bg-white p-8 shadow-xs">
-          <div>
-            <div className="border-b-2 border-slate-900 pb-5 mb-6 flex items-start justify-between">
-              <div>
-                <p className="text-xs font-black tracking-widest uppercase text-indigo-600">RESOLVR ITSM PLATFORM</p>
-                <h2 className="text-2xl font-black text-slate-900 mt-1">OPERATIONS RESOLUTION STATEMENT</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Audited developer resolution capacity & service performance</p>
+        {/* SECTION 1: OPERATIONS RESOLUTION STATEMENT (Scrolls inside card on mobile, full A4 on print) */}
+        <div className="print-statement rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-8 shadow-xs overflow-hidden">
+          <div className="w-full overflow-x-auto print:overflow-visible">
+            <div className="min-w-[640px] print:min-w-0">
+              <div className="border-b-2 border-slate-900 pb-5 mb-6 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black tracking-widest uppercase text-indigo-600">RESOLVR ITSM PLATFORM</p>
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">OPERATIONS RESOLUTION STATEMENT</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Audited developer resolution capacity & service performance</p>
+                </div>
+                <div className="text-right text-xs text-slate-600 font-mono space-y-1 shrink-0">
+                  <p>Statement Scope: <strong className="text-slate-900">{scopeLabel}</strong></p>
+                  <p>Generated: {now.toLocaleDateString()} {now.toLocaleTimeString()}</p>
+                </div>
               </div>
-              <div className="text-right text-xs text-slate-600 font-mono space-y-1">
-                <p>Statement Scope: <strong className="text-slate-900">{scopeLabel}</strong></p>
-                <p>Generated: {now.toLocaleDateString()} {now.toLocaleTimeString()}</p>
-              </div>
-            </div>
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b-2 border-slate-300 bg-slate-50 font-bold uppercase text-slate-700">
-                  <th className="py-3 px-2.5 whitespace-nowrap">Specialist Developer</th>
-                  <th className="py-3 px-2.5 whitespace-nowrap">Department Queue</th>
-                  <th className="py-3 px-2.5 text-center whitespace-nowrap">Resolved</th>
-                  <th className="py-3 px-2.5 text-center whitespace-nowrap">Pending</th>
-                  <th className="py-3 px-2.5 text-center whitespace-nowrap">Total Assigned</th>
-                  <th className="py-3 px-2.5 text-right whitespace-nowrap">Resolution Rate</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {devRows.map((dev) => (
-                  <tr key={dev.id}>
-                    <td className="py-2.5 px-3">
-                      <p className="font-bold text-slate-900">{dev.full_name}</p>
-                      <p className="text-[11px] text-slate-500 font-mono">{dev.email}</p>
-                    </td>
-                    <td className="py-2.5 px-3 font-medium text-slate-700">{dev.deptName}</td>
-                    <td className="py-2.5 px-3 text-center font-bold text-emerald-700">{dev.resolved}</td>
-                    <td className="py-2.5 px-3 text-center font-bold text-amber-700">{dev.pending}</td>
-                    <td className="py-2.5 px-3 text-center font-black text-slate-900">{dev.total}</td>
-                    <td className="py-2.5 px-3 text-right font-black text-indigo-700">{dev.rate}%</td>
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-slate-300 bg-slate-50 font-bold uppercase text-slate-700">
+                    <th className="py-3 px-3">Specialist Developer</th>
+                    <th className="py-3 px-3">Department Queue</th>
+                    <th className="py-3 px-3 text-center">Resolved</th>
+                    <th className="py-3 px-3 text-center">Pending</th>
+                    <th className="py-3 px-3 text-center">Total Assigned</th>
+                    <th className="py-3 px-3 text-right">Resolution Rate</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {devRows.map((dev) => (
+                    <tr key={dev.id}>
+                      <td className="py-2.5 px-3">
+                        <p className="font-bold text-slate-900">{dev.full_name}</p>
+                        <p className="text-[11px] text-slate-500 font-mono">{dev.email}</p>
+                      </td>
+                      <td className="py-2.5 px-3 font-medium text-slate-700">{dev.deptName}</td>
+                      <td className="py-2.5 px-3 text-center font-bold text-emerald-700">{dev.resolved}</td>
+                      <td className="py-2.5 px-3 text-center font-bold text-amber-700">{dev.pending}</td>
+                      <td className="py-2.5 px-3 text-center font-black text-slate-900">{dev.total}</td>
+                      <td className="py-2.5 px-3 text-right font-black text-indigo-700">{dev.rate}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="mt-8 border-t-2 border-slate-200 pt-4 flex items-center justify-between text-xs text-slate-500 font-mono">
+          <div className="mt-8 border-t-2 border-slate-200 pt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 font-mono">
             <span>Resolvr Ticket Management System — Official Audit Ledger</span>
             <span>Verified Operations Statement</span>
           </div>
         </div>
 
-        {/* SECTION 2: PER REQUESTOR TICKET BREAKDOWN */}
-        <div className="no-print rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
+        {/* SECTION 2: PER REQUESTOR TICKET BREAKDOWN (Scrolls inside card on mobile) */}
+        <div className="no-print rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-5 overflow-hidden">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-bold text-slate-900">Per Requestor Ticket Breakdown</h2>
@@ -174,13 +176,13 @@ export function AdminReports() {
               const resCount = reqTickets.filter((t) => t.statusDb === "resolved").length
               const pendCount = reqTickets.filter((t) => t.statusDb !== "resolved").length
               return (
-                <div key={req.id} className="rounded-xl border border-slate-200/80 p-5 space-y-3">
+                <div key={req.id} className="rounded-xl border border-slate-200/80 p-4 sm:p-5 space-y-3 overflow-hidden">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div>
                       <h3 className="font-bold text-slate-900">{req.full_name}</h3>
                       <p className="text-xs text-slate-500">{req.email}</p>
                     </div>
-                    <div className="flex gap-2 text-xs font-bold">
+                    <div className="flex flex-wrap gap-2 text-xs font-bold">
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">Total: {reqTickets.length}</span>
                       <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Resolved: {resCount}</span>
                       <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">Pending: {pendCount}</span>
@@ -189,34 +191,36 @@ export function AdminReports() {
                   {reqTickets.length === 0 ? (
                     <p className="text-xs text-slate-400 italic">No tickets in this period.</p>
                   ) : (
-                    <table className="w-full text-left text-xs table-fixed">
-                      <thead>
-                        <tr className="border-b border-slate-100 uppercase text-slate-400 font-bold">
-                          <th className="py-2 w-28">Ticket #</th>
-                          <th className="py-2 w-60">Subject</th>
-                          <th className="py-2 w-24">Priority</th>
-                          <th className="py-2 w-24">Status</th>
-                          <th className="py-2 w-44">Developer</th>
-                          <th className="py-2">Resolution Comment</th>
-                          <th className="py-2 w-28 text-right">Created</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {reqTickets.map((t) => (
-                          <tr key={t.id} className="hover:bg-slate-50/60">
-                            <td className="py-2.5 font-mono font-bold text-indigo-600 whitespace-nowrap truncate">
-                              <Link to={"/admin/tickets/" + t.id} className="hover:underline">#{t.ticket_number}</Link>
-                            </td>
-                            <td className="py-2.5 font-semibold text-slate-900 truncate pr-3">{t.subject}</td>
-                            <td className="py-2.5"><PriorityBadge priority={t.priority} /></td>
-                            <td className="py-2.5"><StatusBadge status={t.status} /></td>
-                            <td className="py-2.5 text-slate-700 font-medium truncate">{t.assignedTo ?? "Unassigned"}</td>
-                            <td className="py-2.5 text-slate-600 truncate pr-3">{t.resolution_comment ?? "—"}</td>
-                            <td className="py-2.5 text-slate-500 text-right whitespace-nowrap">{t.created}</td>
+                    <div className="w-full overflow-x-auto">
+                      <table className="w-full min-w-[680px] text-left text-xs table-fixed">
+                        <thead>
+                          <tr className="border-b border-slate-100 uppercase text-slate-400 font-bold">
+                            <th className="py-2 w-28">Ticket #</th>
+                            <th className="py-2 w-60">Subject</th>
+                            <th className="py-2 w-24">Priority</th>
+                            <th className="py-2 w-24">Status</th>
+                            <th className="py-2 w-44">Developer</th>
+                            <th className="py-2 w-52">Resolution Comment</th>
+                            <th className="py-2 w-28 text-right">Created</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {reqTickets.map((t) => (
+                            <tr key={t.id} className="hover:bg-slate-50/60">
+                              <td className="py-2.5 font-mono font-bold text-indigo-600 whitespace-nowrap truncate">
+                                <Link to={"/admin/tickets/" + t.id} className="hover:underline">#{t.ticket_number}</Link>
+                              </td>
+                              <td className="py-2.5 font-semibold text-slate-900 truncate pr-3">{t.subject}</td>
+                              <td className="py-2.5"><PriorityBadge priority={t.priority} /></td>
+                              <td className="py-2.5"><StatusBadge status={t.status} /></td>
+                              <td className="py-2.5 text-slate-700 font-medium truncate">{t.assignedTo ?? "Unassigned"}</td>
+                              <td className="py-2.5 text-slate-600 truncate pr-3">{t.resolution_comment ?? "—"}</td>
+                              <td className="py-2.5 text-slate-500 text-right whitespace-nowrap">{t.created}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               )
