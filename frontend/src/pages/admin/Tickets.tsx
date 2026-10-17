@@ -86,7 +86,7 @@ export function AdminTickets() {
               <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 <th className="py-3.5 px-3 w-28">Ticket</th>
                 <th className="py-3.5 px-3">Subject</th>
-                <th className="py-3.5 px-3 w-40">Requestor</th>
+                <th className="py-3.5 px-3 w-56">Requestor</th>
                 <th className="py-3.5 px-3 w-52">Department & Category</th>
                 <th className="py-3.5 px-3 w-24">Priority</th>
                 <th className="py-3.5 px-3 w-24">Status</th>
