@@ -1,4 +1,3 @@
-import React from "react"
 import { useCallback, useEffect, useState, type ReactNode } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { BarChart3, Bell, CheckCircle2, Code2, House, ShieldCheck, ListTodo, LogOut, Plus, Tags, Users, type LucideIcon } from "lucide-react"
@@ -101,26 +100,6 @@ export function Sidebar({ role, userName, unreadCount = 0 }: { role: Role; userN
 }
 
 export function AppShell({ children, role, userName }: { children: ReactNode; role: Role; userName?: string }) {
-  const [isDark, setIsDark] = React.useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("resolvr_theme") === "dark";
-    }
-    return false;
-  });
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add("dark");
-      localStorage.setItem("resolvr_theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("resolvr_theme", "light");
-    }
-  }, [isDark]);
-
-  const toggleAppTheme = () => setIsDark((prev) => !prev);
   const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
   const [latest, setLatest] = useState<any>(null)
@@ -134,33 +113,6 @@ export function AppShell({ children, role, userName }: { children: ReactNode; ro
     <div className="flex h-screen w-screen bg-[#f8fafc] text-slate-900 overflow-hidden">
       <Sidebar role={role} userName={userName} unreadCount={unreadCount} />
       <main className="flex-1 overflow-y-auto">
-        <div className="no-print flex items-center justify-end gap-2.5 mb-4">
-          <button
-            type="button"
-            onClick={() => {
-              const asideEl = document.querySelector("aside");
-              if (asideEl) {
-                asideEl.classList.toggle("mobile-aside-open");
-              }
-              setMobileMenuOpen((v) => !v);
-            }}
-            className="lg:hidden mr-auto inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs cursor-pointer"
-          >
-            <span>{mobileMenuOpen ? "✕ Close Menu" : "☰ Menu"}</span>
-          </button>
-          <button
-            type="button"
-            onClick={toggleAppTheme}
-            style={{
-              backgroundColor: isDark ? "#0f172a" : "#ffffff",
-              borderColor: isDark ? "#334155" : "#cbd5e1",
-              color: isDark ? "#fbbf24" : "#334155"
-            }}
-            className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold shadow-xs transition hover:opacity-90 cursor-pointer"
-          >
-            <span>{isDark ? "☀ Light Mode" : "🌙 Dark Mode"}</span>
-          </button>
-        </div>
         {latest && (
           <div className="no-print flex items-center gap-3 border-b border-indigo-100 bg-indigo-50 px-8 py-3 text-sm text-indigo-900">
             <Bell className="h-4 w-4 flex-shrink-0 text-indigo-600" />
