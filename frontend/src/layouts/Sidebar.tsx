@@ -106,7 +106,30 @@ export function Sidebar({ role }: SidebarProps) {
       {/* Profile & Logout Section */}
       <div className="p-3 border-t border-slate-800">
         <SidebarThemeToggle />
-        <div className="flex items-center justify-between rounded-2xl bg-slate-950/40 p-3 border border-slate-800/60">
+        
+      {/* Sidebar Inside-App Theme Toggle */}
+      <div className="px-3 pb-3 no-print">
+        <button
+          type="button"
+          onClick={toggleAppTheme}
+          style={{
+            backgroundColor: isDark ? "#0f172a" : "#f8fafc",
+            borderColor: isDark ? "#1e293b" : "#e2e8f0",
+            color: isDark ? "#f8fafc" : "#0f172a"
+          }}
+          className="flex w-full items-center justify-between rounded-xl border px-3.5 py-2 text-xs font-bold transition hover:opacity-90 cursor-pointer shadow-xs"
+        >
+          <span className="flex items-center gap-2">
+            <span>{isDark ? "☀" : "🌙"}</span>
+            <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+          </span>
+          <span className="rounded-md bg-indigo-600/20 text-indigo-400 px-2 py-0.5 text-[10px] uppercase font-black">
+            {isDark ? "Dark" : "Light"}
+          </span>
+        </button>
+      </div>
+      
+      <div className="flex items-center justify-between rounded-2xl bg-slate-950/40 p-3 border border-slate-800/60">
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="h-9 w-9 rounded-xl bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-bold text-xs shrink-0">
               {userName ? userName.charAt(0).toUpperCase() : "U"}
@@ -136,6 +159,25 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, role }: AppShellProps) {
+  const [isDark, setIsDark] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("resolvr_theme") === "dark";
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add("dark");
+      localStorage.setItem("resolvr_theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("resolvr_theme", "light");
+    }
+  }, [isDark]);
+
+  const toggleAppTheme = () => setIsDark((prev) => !prev);
   const [isDark, setIsDark] = React.useState(() => {
     try {
       return typeof window !== "undefined" && localStorage.getItem("resolvr_theme") === "dark";
