@@ -114,3 +114,20 @@ html.dark tr:hover {
     font-size: 12.5px !important;
   }
 }
+
+/* Mobile-Only Sidebar Drawer (< 1024px) - Laptop Layout Untouched */
+@media (max-width: 1023px) {
+  aside {
+    display: none !important;
+  }
+  aside.mobile-aside-open {
+    display: flex !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    z-index: 50 !important;
+    width: 260px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  }
+}
